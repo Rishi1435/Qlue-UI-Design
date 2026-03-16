@@ -13,83 +13,104 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/hooks/useTheme";
 
-function PasswordStrength({ password }: { password: string }) {
-  const getStrength = () => {
-    let score = 0;
-    if (password.length >= 8) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-    return score;
-  };
-
-  if (!password) return null;
-  const strength = getStrength();
-  const labels = ["", "Weak", "Fair", "Good", "Strong"];
-  const colors = ["", Colors.semantic.error, Colors.semantic.warning, Colors.secondary[500], Colors.semantic.success];
-
+function FieldInput({
+  icon, placeholder, value, onChangeText, secure, keyboard, capitalize, right,
+}: {
+  icon: string; placeholder: string; value: string;
+  onChangeText: (t: string) => void; secure?: boolean;
+  keyboard?: any; capitalize?: any; right?: React.ReactNode;
+}) {
+  const theme = useTheme();
+  const [focused, setFocused] = useState(false);
   return (
-    <View style={{ gap: 6, marginTop: 4 }}>
+    <View style={[styles.inputWrap, {
+      borderColor: focused ? theme.primary : theme.border,
+      backgroundColor: focused ? theme.inputFocusBg : theme.inputBg,
+    }]}>
+      <Feather name={icon as any} size={17} color={focused ? theme.primary : theme.iconDefault} style={styles.inputIcon} />
+      <TextInput
+        style={[styles.inputField, { color: theme.text }]}
+        placeholder={placeholder}
+        placeholderTextColor={theme.placeholder}
+        value={value}
+        onChangeText={onChangeText}
+        secureTextEntry={secure}
+        keyboardType={keyboard}
+        autoCapitalize={capitalize ?? "none"}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+      />
+      {right}
+    </View>
+  );
+}
+
+function StrengthBar({ password }: { password: string }) {
+  const theme = useTheme();
+  const score = (() => {
+    let s = 0;
+    if (password.length >= 8) s++;
+    if (/[A-Z]/.test(password)) s++;
+    if (/[0-9]/.test(password)) s++;
+    if (/[^A-Za-z0-9]/.test(password)) s++;
+    return s;
+  })();
+  if (!password) return null;
+  const colors = [theme.error, theme.warning, theme.secondary, theme.success];
+  const labels = ["Weak", "Fair", "Good", "Strong"];
+  return (
+    <View style={{ marginTop: 8, gap: 6 }}>
       <View style={{ flexDirection: "row", gap: 4 }}>
-        {[1, 2, 3, 4].map((i) => (
-          <View
-            key={i}
-            style={{
-              flex: 1, height: 3, borderRadius: 2,
-              backgroundColor: i <= strength ? colors[strength] : Colors.neutral[200],
-            }}
-          />
+        {[0, 1, 2, 3].map((i) => (
+          <View key={i} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: i < score ? colors[score - 1] : theme.border }} />
         ))}
       </View>
-      {strength > 0 && (
-        <Text style={{ fontSize: 11, color: colors[strength], fontFamily: "Inter_500Medium" }}>
-          {labels[strength]}
-        </Text>
-      )}
+      <Text style={{ fontSize: 11, fontFamily: "Inter_500Medium", color: colors[score - 1] ?? theme.textTertiary }}>
+        {labels[score - 1] ?? ""}
+      </Text>
     </View>
   );
 }
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [confirm, setConfirm] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [focused, setFocused] = useState("");
+  const webTop = Platform.OS === "web" ? 67 : 0;
+
+  const btnScale = useSharedValue(1);
+  const btnStyle = useAnimatedStyle(() => ({ transform: [{ scale: btnScale.value }] }));
 
   const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      setError("Please fill in all fields");
-      return;
+    if (!name.trim() || !email.trim() || !password || !confirm) {
+      setError("Please fill in all fields"); return;
     }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-    if (!agreed) {
-      setError("Please agree to the Terms & Conditions");
-      return;
-    }
+    if (password !== confirm) { setError("Passwords do not match"); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+    if (!agreed) { setError("Please accept the Terms & Conditions"); return; }
     setError("");
     setLoading(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await register(name, email, password);
+      await register(name.trim(), email.trim(), password);
       router.replace("/(tabs)");
     } catch {
       setError("Registration failed. Please try again.");
@@ -98,224 +119,154 @@ export default function RegisterScreen() {
     }
   };
 
-  const inputStyle = (field: string) => [
-    styles.inputRow,
-    focused === field && styles.inputFocused,
-  ];
+  const matchOk = confirm.length > 0 && confirm === password;
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScrollView
-        style={[styles.container, { paddingTop: insets.top }]}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={22} color={Colors.neutral[700]} />
-        </Pressable>
+    <View style={[styles.root, { backgroundColor: theme.bg }]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView
+          contentContainerStyle={[styles.scroll, { paddingTop: insets.top + webTop + 16, paddingBottom: insets.bottom + 40 }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Back */}
+          <Pressable style={[styles.backBtn, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={() => router.back()}>
+            <Feather name="arrow-left" size={18} color={theme.text} />
+          </Pressable>
 
-        <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Start your interview prep journey</Text>
-        </View>
+          <View style={styles.headerSection}>
+            <Text style={[styles.title, { color: theme.text }]}>Create account</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              Start your AI-powered interview journey
+            </Text>
+          </View>
 
-        <View style={styles.card}>
-          {!!error && (
-            <View style={styles.errorBanner}>
-              <Feather name="alert-circle" size={16} color={Colors.semantic.error} />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-
-          <View style={styles.form}>
-            <View style={styles.fieldWrapper}>
-              <Text style={styles.label}>Full Name</Text>
-              <View style={inputStyle("name")}>
-                <Feather name="user" size={18} color={focused === "name" ? Colors.primary[500] : Colors.neutral[400]} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Jane Smith"
-                  placeholderTextColor={Colors.neutral[300]}
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                  onFocus={() => setFocused("name")}
-                  onBlur={() => setFocused("")}
-                />
+          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            {!!error && (
+              <View style={[styles.errorBox, { backgroundColor: theme.errorMuted, borderColor: theme.error + "30" }]}>
+                <Feather name="alert-circle" size={15} color={theme.error} />
+                <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text>
               </View>
-            </View>
+            )}
 
-            <View style={styles.fieldWrapper}>
-              <Text style={styles.label}>Email</Text>
-              <View style={inputStyle("email")}>
-                <Feather name="mail" size={18} color={focused === "email" ? Colors.primary[500] : Colors.neutral[400]} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="you@example.com"
-                  placeholderTextColor={Colors.neutral[300]}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  onFocus={() => setFocused("email")}
-                  onBlur={() => setFocused("")}
-                />
+            <View style={styles.fields}>
+              <View>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Full Name</Text>
+                <FieldInput icon="user" placeholder="Jane Smith" value={name} onChangeText={setName} capitalize="words" />
               </View>
-            </View>
-
-            <View style={styles.fieldWrapper}>
-              <Text style={styles.label}>Password</Text>
-              <View style={inputStyle("password")}>
-                <Feather name="lock" size={18} color={focused === "password" ? Colors.primary[500] : Colors.neutral[400]} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  placeholder="Min. 8 characters"
-                  placeholderTextColor={Colors.neutral[300]}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  onFocus={() => setFocused("password")}
-                  onBlur={() => setFocused("")}
-                />
-                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                  <Feather name={showPassword ? "eye-off" : "eye"} size={18} color={Colors.neutral[400]} />
-                </Pressable>
+              <View>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Email address</Text>
+                <FieldInput icon="mail" placeholder="you@example.com" value={email} onChangeText={setEmail} keyboard="email-address" />
               </View>
-              <PasswordStrength password={password} />
-            </View>
-
-            <View style={styles.fieldWrapper}>
-              <Text style={styles.label}>Confirm Password</Text>
-              <View style={inputStyle("confirm")}>
-                <Feather
-                  name={confirmPassword && confirmPassword === password ? "check-circle" : "lock"}
-                  size={18}
-                  color={confirmPassword && confirmPassword === password ? Colors.semantic.success : focused === "confirm" ? Colors.primary[500] : Colors.neutral[400]}
-                  style={styles.inputIcon}
+              <View>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Password</Text>
+                <FieldInput
+                  icon="lock" placeholder="Min. 8 characters"
+                  value={password} onChangeText={setPassword} secure={!showPass}
+                  right={
+                    <Pressable onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
+                      <Feather name={showPass ? "eye-off" : "eye"} size={17} color={theme.iconDefault} />
+                    </Pressable>
+                  }
                 />
-                <TextInput
-                  style={styles.input}
+                <StrengthBar password={password} />
+              </View>
+              <View>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Confirm Password</Text>
+                <FieldInput
+                  icon={matchOk ? "check-circle" : "lock"}
                   placeholder="Re-enter password"
-                  placeholderTextColor={Colors.neutral[300]}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry={!showPassword}
-                  onFocus={() => setFocused("confirm")}
-                  onBlur={() => setFocused("")}
+                  value={confirm} onChangeText={setConfirm} secure={!showPass}
                 />
               </View>
             </View>
 
-            <Pressable
-              style={styles.checkboxRow}
-              onPress={() => setAgreed(!agreed)}
-            >
-              <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
-                {agreed && <Feather name="check" size={12} color={Colors.white} />}
+            <Pressable style={styles.checkRow} onPress={() => setAgreed(!agreed)}>
+              <View style={[styles.checkbox, { borderColor: agreed ? theme.primary : theme.border, backgroundColor: agreed ? theme.primary : "transparent" }]}>
+                {agreed && <Feather name="check" size={11} color="#fff" />}
               </View>
-              <Text style={styles.checkboxLabel}>
+              <Text style={[styles.checkText, { color: theme.textSecondary }]}>
                 I agree to the{" "}
-                <Text style={styles.checkboxLink}>Terms & Conditions</Text>
+                <Text style={{ color: theme.primary, fontFamily: "Inter_500Medium" }}>Terms & Conditions</Text>
                 {" "}and{" "}
-                <Text style={styles.checkboxLink}>Privacy Policy</Text>
+                <Text style={{ color: theme.primary, fontFamily: "Inter_500Medium" }}>Privacy Policy</Text>
               </Text>
             </Pressable>
 
-            <Pressable
-              style={({ pressed }) => [
-                styles.registerBtn,
-                pressed && styles.registerBtnPressed,
-                loading && styles.registerBtnDisabled,
-              ]}
-              onPress={handleRegister}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={Colors.white} />
-              ) : (
-                <Text style={styles.registerBtnText}>Create Account</Text>
-              )}
-            </Pressable>
+            <Animated.View style={btnStyle}>
+              <Pressable
+                style={({ pressed }) => [styles.primaryBtn, { backgroundColor: theme.primary, opacity: pressed ? 0.9 : 1 }]}
+                onPressIn={() => { btnScale.value = withSpring(0.97, { damping: 20 }); }}
+                onPressOut={() => { btnScale.value = withSpring(1, { damping: 20 }); }}
+                onPress={handleRegister}
+                disabled={loading}
+              >
+                {loading
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.primaryBtnText}>Create Account</Text>}
+              </Pressable>
+            </Animated.View>
           </View>
-        </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account? </Text>
-          <Pressable onPress={() => router.back()}>
-            <Text style={styles.footerLink}>Sign In</Text>
+          <Pressable style={styles.signinRow} onPress={() => router.back()}>
+            <Text style={[styles.signinText, { color: theme.textSecondary }]}>Already have an account? </Text>
+            <Text style={[styles.signinLink, { color: theme.primary }]}>Sign In</Text>
           </Pressable>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.primary[50] },
-  content: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 },
-  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginTop: 8 },
-  header: { paddingTop: 16, paddingBottom: 24 },
-  title: { fontSize: 28, fontFamily: "Inter_700Bold", color: Colors.neutral[900] },
-  subtitle: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.neutral[500], marginTop: 4 },
+  root: { flex: 1 },
+  scroll: { paddingHorizontal: 20, flexGrow: 1 },
+  backBtn: {
+    width: 38, height: 38, borderRadius: 10, borderWidth: 1,
+    alignItems: "center", justifyContent: "center", marginBottom: 20,
+  },
+  headerSection: { marginBottom: 24 },
+  title: { fontSize: 26, fontFamily: "Inter_700Bold", letterSpacing: -0.4 },
+  subtitle: { fontSize: 14, fontFamily: "Inter_400Regular", marginTop: 4 },
   card: {
-    backgroundColor: Colors.white, borderRadius: 20,
-    padding: 24,
-    shadowColor: Colors.neutral[900],
+    borderRadius: 24, padding: 20, borderWidth: 1,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 4,
+    shadowOpacity: 0.07, shadowRadius: 20, elevation: 4,
+    gap: 16,
   },
-  errorBanner: {
+  errorBox: {
     flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: "#FEE5E5", borderRadius: 10,
-    padding: 12, marginBottom: 16,
+    borderRadius: 10, padding: 12, borderWidth: 1,
   },
-  errorText: { fontSize: 13, color: Colors.semantic.error, fontFamily: "Inter_400Regular", flex: 1 },
-  form: { gap: 16 },
-  fieldWrapper: { gap: 6 },
-  label: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.neutral[700] },
-  inputRow: {
+  errorText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 },
+  fields: { gap: 14 },
+  label: { fontSize: 13, fontFamily: "Inter_500Medium", marginBottom: 6 },
+  inputWrap: {
     flexDirection: "row", alignItems: "center",
-    borderWidth: 1.5, borderColor: Colors.neutral[200],
-    borderRadius: 10, backgroundColor: Colors.neutral[50],
-    height: 52,
+    borderRadius: 12, borderWidth: 1.5, height: 50,
   },
-  inputFocused: { borderColor: Colors.primary[500], backgroundColor: Colors.primary[50] },
-  inputIcon: { paddingLeft: 14, paddingRight: 8 },
-  input: {
-    flex: 1, height: "100%", paddingRight: 14,
-    fontSize: 15, fontFamily: "Inter_400Regular",
-    color: Colors.neutral[900],
+  inputIcon: { paddingLeft: 14, paddingRight: 10 },
+  inputField: {
+    flex: 1, height: "100%",
+    fontSize: 15, fontFamily: "Inter_400Regular", paddingRight: 14,
   },
-  eyeBtn: { padding: 14 },
-  checkboxRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  eyeBtn: { padding: 12 },
+  checkRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   checkbox: {
-    width: 20, height: 20, borderRadius: 5,
-    borderWidth: 1.5, borderColor: Colors.neutral[300],
-    alignItems: "center", justifyContent: "center",
-    marginTop: 1,
+    width: 20, height: 20, borderRadius: 5, borderWidth: 1.5,
+    alignItems: "center", justifyContent: "center", marginTop: 1,
   },
-  checkboxChecked: { backgroundColor: Colors.primary[500], borderColor: Colors.primary[500] },
-  checkboxLabel: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.neutral[500], lineHeight: 20 },
-  checkboxLink: { color: Colors.primary[500], fontFamily: "Inter_500Medium" },
-  registerBtn: {
-    height: 52, borderRadius: 12,
-    backgroundColor: Colors.primary[500],
+  checkText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  primaryBtn: {
+    height: 50, borderRadius: 12,
     alignItems: "center", justifyContent: "center",
-    marginTop: 4,
   },
-  registerBtnPressed: { backgroundColor: Colors.primary[600] },
-  registerBtnDisabled: { backgroundColor: Colors.neutral[300] },
-  registerBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: Colors.white },
-  footer: {
+  primaryBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  signinRow: {
     flexDirection: "row", justifyContent: "center",
-    alignItems: "center", marginTop: 24,
+    alignItems: "center", marginTop: 20,
   },
-  footerText: { fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.neutral[500] },
-  footerLink: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.primary[500] },
+  signinText: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  signinLink: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
 });

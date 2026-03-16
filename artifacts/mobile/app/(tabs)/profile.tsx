@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
   Alert,
@@ -14,63 +15,62 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
+import { useInterviews } from "@/context/InterviewContext";
+import { useResumes } from "@/context/ResumeContext";
+import { useTheme } from "@/hooks/useTheme";
 
-function SettingRow({
-  icon,
-  label,
-  value,
-  onPress,
-  isToggle,
-  toggleValue,
-  onToggle,
-  destructive,
+function SettingItem({
+  icon, label, iconColor, iconBg, right, onPress, destructive,
 }: {
-  icon: string;
-  label: string;
-  value?: string;
-  onPress?: () => void;
-  isToggle?: boolean;
-  toggleValue?: boolean;
-  onToggle?: (v: boolean) => void;
-  destructive?: boolean;
+  icon: string; label: string; iconColor: string; iconBg: string;
+  right?: React.ReactNode; onPress?: () => void; destructive?: boolean;
 }) {
+  const theme = useTheme();
   return (
     <Pressable
-      style={({ pressed }) => [styles.settingRow, { opacity: pressed && !isToggle ? 0.7 : 1 }]}
+      style={({ pressed }) => [styles.settingItem, { opacity: pressed && !!onPress ? 0.7 : 1 }]}
       onPress={onPress}
-      disabled={isToggle}
+      disabled={!onPress && !right}
     >
-      <View style={[styles.settingIcon, { backgroundColor: destructive ? "#FEE5E5" : Colors.primary[50] }]}>
-        <Feather name={icon as any} size={16} color={destructive ? Colors.semantic.error : Colors.primary[500]} />
+      <View style={[styles.settingIconBox, { backgroundColor: iconBg }]}>
+        <Feather name={icon as any} size={15} color={iconColor} />
       </View>
-      <Text style={[styles.settingLabel, destructive && { color: Colors.semantic.error }]}>{label}</Text>
+      <Text style={[styles.settingLabel, { color: destructive ? theme.error : theme.text }]}>{label}</Text>
       <View style={{ flex: 1 }} />
-      {isToggle ? (
-        <Switch
-          value={!!toggleValue}
-          onValueChange={onToggle}
-          trackColor={{ false: Colors.neutral[200], true: Colors.primary[500] }}
-          thumbColor={Colors.white}
-        />
-      ) : value ? (
-        <Text style={styles.settingValue}>{value}</Text>
-      ) : (
-        <Feather name="chevron-right" size={16} color={Colors.neutral[300]} />
-      )}
+      {right ?? (onPress && <Feather name="chevron-right" size={16} color={theme.textTertiary} />)}
     </Pressable>
   );
 }
 
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: theme.textTertiary }]}>{title}</Text>
+      <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        {children}
+      </View>
+    </View>
+  );
+}
+
+function Divider() {
+  const theme = useTheme();
+  return <View style={[styles.divider, { backgroundColor: theme.border }]} />;
+}
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { user, logout, updateUser } = useAuth();
+  const { sessions } = useInterviews();
+  const { resumes } = useResumes();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(user?.name || "");
   const [notifications, setNotifications] = useState(true);
   const [voiceAssist, setVoiceAssist] = useState(true);
-  const webTopPadding = Platform.OS === "web" ? 67 : 0;
+  const webTop = Platform.OS === "web" ? 67 : 0;
 
   const handleSave = async () => {
     if (!editName.trim()) return;
@@ -83,12 +83,8 @@ export default function ProfileScreen() {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Sign Out",
-        style: "destructive",
-        onPress: async () => {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          logout();
-        },
+        text: "Sign Out", style: "destructive",
+        onPress: () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); logout(); },
       },
     ]);
   };
@@ -97,31 +93,38 @@ export default function ProfileScreen() {
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "?";
 
+  const avgScore = sessions.length > 0
+    ? Math.round(sessions.reduce((a, s) => a + s.score, 0) / sessions.length)
+    : 0;
+
   return (
     <ScrollView
-      style={styles.container}
-      contentContainerStyle={[
-        styles.content,
-        { paddingBottom: insets.bottom + 100 },
-      ]}
+      style={[styles.root, { backgroundColor: theme.bg }]}
+      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
       showsVerticalScrollIndicator={false}
     >
-      <View style={[styles.headerBg, { paddingTop: insets.top + webTopPadding + 16 }]}>
+      {/* Header */}
+      <LinearGradient
+        colors={theme.dark ? ["#0D1B38", "#142444"] : ["#1A73C7", "#0D5AA8"]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={[styles.profileHeader, { paddingTop: insets.top + webTop + 16 }]}
+      >
         <Pressable
-          style={styles.editBtn}
+          style={styles.editHeaderBtn}
           onPress={() => {
             if (isEditing) handleSave();
-            else {
-              setEditName(user?.name || "");
-              setIsEditing(true);
-            }
+            else { setEditName(user?.name || ""); setIsEditing(true); }
           }}
         >
-          <Feather name={isEditing ? "check" : "edit-2"} size={16} color={Colors.white} />
+          <Feather name={isEditing ? "check" : "edit-2"} size={16} color="rgba(255,255,255,0.9)" />
         </Pressable>
 
-        <View style={styles.avatarWrap}>
-          <Text style={styles.avatarText}>{initials}</Text>
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatarBorder}>
+            <View style={styles.avatarCircle}>
+              <Text style={[styles.avatarText, { color: theme.primary }]}>{initials}</Text>
+            </View>
+          </View>
         </View>
 
         {isEditing ? (
@@ -129,149 +132,185 @@ export default function ProfileScreen() {
             style={styles.nameInput}
             value={editName}
             onChangeText={setEditName}
-            autoFocus
-            selectTextOnFocus
+            autoFocus selectTextOnFocus
+            autoCapitalize="words"
           />
         ) : (
-          <Text style={styles.userName}>{user?.name || "User"}</Text>
+          <Text style={styles.profileName}>{user?.name || "User"}</Text>
         )}
-        <Text style={styles.userEmail}>{user?.email || ""}</Text>
-      </View>
+        <Text style={styles.profileEmail}>{user?.email || ""}</Text>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Personal Information</Text>
-        <View style={styles.card}>
-          <SettingRow icon="user" label="Full Name" value={user?.name} />
-          <View style={styles.divider} />
-          <SettingRow icon="mail" label="Email" value={user?.email} />
-          <View style={styles.divider} />
-          <SettingRow icon="phone" label="Phone" value="Not set" onPress={() => {}} />
+        {/* Quick stats */}
+        <View style={styles.profileStats}>
+          {[
+            { val: sessions.length, label: "Sessions" },
+            { val: resumes.length, label: "Resumes" },
+            { val: avgScore > 0 ? `${avgScore}%` : "--", label: "Avg Score" },
+          ].map((s, i) => (
+            <React.Fragment key={s.label}>
+              {i > 0 && <View style={styles.profileStatDivider} />}
+              <View style={styles.profileStat}>
+                <Text style={styles.profileStatVal}>{s.val}</Text>
+                <Text style={styles.profileStatLabel}>{s.label}</Text>
+              </View>
+            </React.Fragment>
+          ))}
         </View>
-      </View>
+      </LinearGradient>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Preferences</Text>
-        <View style={styles.card}>
-          <SettingRow
-            icon="bell"
-            label="Notifications"
-            isToggle
-            toggleValue={notifications}
-            onToggle={setNotifications}
+      {/* Settings */}
+      <View style={styles.sections}>
+        <Section title="ACCOUNT">
+          <SettingItem
+            icon="user" label="Full Name"
+            iconColor="#60A5FA" iconBg="rgba(96,165,250,0.15)"
+            right={<Text style={[styles.settingValue, { color: theme.textSecondary }]}>{user?.name}</Text>}
           />
-          <View style={styles.divider} />
-          <SettingRow
-            icon="mic"
-            label="Voice Assistance"
-            isToggle
-            toggleValue={voiceAssist}
-            onToggle={setVoiceAssist}
+          <Divider />
+          <SettingItem
+            icon="mail" label="Email Address"
+            iconColor="#34D399" iconBg="rgba(52,211,153,0.15)"
+            right={<Text style={[styles.settingValue, { color: theme.textSecondary }]} numberOfLines={1}>{user?.email}</Text>}
           />
-        </View>
-      </View>
+          <Divider />
+          <SettingItem
+            icon="lock" label="Change Password"
+            iconColor="#FBBF24" iconBg="rgba(251,191,36,0.15)"
+            onPress={() => {}}
+          />
+        </Section>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account</Text>
-        <View style={styles.card}>
-          <SettingRow icon="lock" label="Change Password" onPress={() => {}} />
-          <View style={styles.divider} />
-          <SettingRow icon="help-circle" label="Help & Support" onPress={() => {}} />
-          <View style={styles.divider} />
-          <SettingRow icon="info" label="About Qlue" value="v1.0.0" />
-        </View>
-      </View>
+        <Section title="PREFERENCES">
+          <SettingItem
+            icon="bell" label="Notifications"
+            iconColor="#A78BFA" iconBg="rgba(167,139,250,0.15)"
+            right={
+              <Switch
+                value={notifications}
+                onValueChange={setNotifications}
+                trackColor={{ false: theme.border, true: theme.primary }}
+                thumbColor="#fff"
+              />
+            }
+          />
+          <Divider />
+          <SettingItem
+            icon="mic" label="Voice Assistance"
+            iconColor={theme.primary} iconBg={theme.primaryMuted}
+            right={
+              <Switch
+                value={voiceAssist}
+                onValueChange={setVoiceAssist}
+                trackColor={{ false: theme.border, true: theme.primary }}
+                thumbColor="#fff"
+              />
+            }
+          />
+        </Section>
 
-      <Pressable
-        style={({ pressed }) => [styles.logoutBtn, { opacity: pressed ? 0.85 : 1 }]}
-        onPress={handleLogout}
-      >
-        <Feather name="log-out" size={18} color={Colors.semantic.error} />
-        <Text style={styles.logoutText}>Sign Out</Text>
-      </Pressable>
+        <Section title="ABOUT">
+          <SettingItem
+            icon="help-circle" label="Help & Support"
+            iconColor="#22D3EE" iconBg="rgba(34,211,238,0.15)"
+            onPress={() => {}}
+          />
+          <Divider />
+          <SettingItem
+            icon="star" label="Rate Qlue"
+            iconColor="#FCD34D" iconBg="rgba(252,211,77,0.15)"
+            onPress={() => {}}
+          />
+          <Divider />
+          <SettingItem
+            icon="info" label="App Version"
+            iconColor={theme.textTertiary} iconBg={theme.bgSecondary}
+            right={<Text style={[styles.settingValue, { color: theme.textTertiary }]}>1.0.0</Text>}
+          />
+        </Section>
+
+        <Pressable
+          style={({ pressed }) => [styles.signOutBtn, { backgroundColor: theme.errorMuted, borderColor: theme.error + "25", opacity: pressed ? 0.8 : 1 }]}
+          onPress={handleLogout}
+        >
+          <Feather name="log-out" size={17} color={theme.error} />
+          <Text style={[styles.signOutText, { color: theme.error }]}>Sign Out</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.neutral[50] },
+  root: { flex: 1 },
   content: { gap: 0 },
-  headerBg: {
-    backgroundColor: Colors.primary[600],
-    paddingHorizontal: 20,
-    paddingBottom: 32,
+  profileHeader: {
+    paddingHorizontal: 20, paddingBottom: 24,
     alignItems: "center",
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
+    gap: 6,
   },
-  editBtn: {
-    position: "absolute", right: 20, top: 16,
+  editHeaderBtn: {
+    position: "absolute", right: 20, top: 20,
     width: 36, height: 36, borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center", justifyContent: "center",
     zIndex: 1,
   },
-  avatarWrap: {
-    width: 84, height: 84, borderRadius: 42,
-    backgroundColor: Colors.white,
+  avatarContainer: { marginBottom: 4, marginTop: 12 },
+  avatarBorder: {
+    width: 90, height: 90, borderRadius: 45,
+    borderWidth: 3, borderColor: "rgba(255,255,255,0.4)",
     alignItems: "center", justifyContent: "center",
-    marginBottom: 12,
-    shadowColor: Colors.primary[900],
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 4,
   },
-  avatarText: { fontSize: 28, fontFamily: "Inter_700Bold", color: Colors.primary[600] },
-  userName: { fontSize: 20, fontFamily: "Inter_700Bold", color: Colors.white },
+  avatarCircle: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: "#fff",
+    alignItems: "center", justifyContent: "center",
+  },
+  avatarText: { fontSize: 26, fontFamily: "Inter_700Bold" },
+  profileName: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#fff" },
   nameInput: {
-    fontSize: 20, fontFamily: "Inter_700Bold", color: Colors.white,
+    fontSize: 20, fontFamily: "Inter_700Bold", color: "#fff",
     borderBottomWidth: 1.5, borderBottomColor: "rgba(255,255,255,0.5)",
-    paddingBottom: 4, minWidth: 160, textAlign: "center",
+    paddingBottom: 3, minWidth: 160, textAlign: "center",
   },
-  userEmail: {
-    fontSize: 13, fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.75)", marginTop: 4,
+  profileEmail: { fontSize: 13, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)" },
+  profileStats: {
+    flexDirection: "row", marginTop: 16,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 16, padding: 16, width: "100%",
   },
-  section: { paddingHorizontal: 16, paddingTop: 24 },
+  profileStat: { flex: 1, alignItems: "center", gap: 3 },
+  profileStatVal: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#fff" },
+  profileStatLabel: { fontSize: 11, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.65)" },
+  profileStatDivider: { width: 1, backgroundColor: "rgba(255,255,255,0.2)", marginVertical: 4 },
+  sections: { padding: 16, gap: 0 },
+  section: { marginBottom: 20 },
   sectionTitle: {
-    fontSize: 12, fontFamily: "Inter_600SemiBold",
-    color: Colors.neutral[500], textTransform: "uppercase",
-    letterSpacing: 0.8, marginBottom: 8,
+    fontSize: 11, fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.8, marginBottom: 8, paddingLeft: 4,
   },
-  card: {
-    backgroundColor: Colors.white, borderRadius: 16,
-    shadowColor: Colors.neutral[900],
+  sectionCard: {
+    borderRadius: 18, borderWidth: 1, overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
-  settingRow: {
+  settingItem: {
     flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 16, paddingVertical: 13, gap: 12,
+    paddingHorizontal: 16, paddingVertical: 13, gap: 13,
   },
-  settingIcon: {
-    width: 32, height: 32, borderRadius: 8,
+  settingIconBox: {
+    width: 34, height: 34, borderRadius: 9,
     alignItems: "center", justifyContent: "center",
   },
-  settingLabel: {
-    fontSize: 15, fontFamily: "Inter_500Medium", color: Colors.neutral[800],
-  },
-  settingValue: {
-    fontSize: 14, fontFamily: "Inter_400Regular", color: Colors.neutral[400],
-  },
-  divider: { height: 1, backgroundColor: Colors.neutral[100], marginLeft: 60 },
-  logoutBtn: {
+  settingLabel: { fontSize: 15, fontFamily: "Inter_500Medium" },
+  settingValue: { fontSize: 13, fontFamily: "Inter_400Regular", maxWidth: 160 },
+  divider: { height: 1, marginLeft: 63 },
+  signOutBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 10, marginHorizontal: 16, marginTop: 24,
-    backgroundColor: Colors.white, borderRadius: 14,
-    paddingVertical: 15,
-    borderWidth: 1.5, borderColor: "#FEE5E5",
-    shadowColor: Colors.neutral[900],
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    gap: 10, height: 52, borderRadius: 16, borderWidth: 1,
+    marginBottom: 8,
   },
-  logoutText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: Colors.semantic.error },
+  signOutText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });

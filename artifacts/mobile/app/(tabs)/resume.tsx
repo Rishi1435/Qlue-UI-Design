@@ -6,154 +6,164 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
-  Platform,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors } from "@/constants/colors";
 import { Resume, ResumeStatus, useResumes } from "@/context/ResumeContext";
+import { useTheme } from "@/hooks/useTheme";
 
-const STATUS_CONFIG: Record<ResumeStatus, { label: string; bg: string; text: string }> = {
-  parsed: { label: "Parsed", bg: "#EDFDF3", text: Colors.semantic.success },
-  parsing: { label: "Parsing...", bg: "#FFF7D4", text: Colors.semantic.warning },
-  failed: { label: "Failed", bg: "#FEE5E5", text: Colors.semantic.error },
-  pending: { label: "Pending", bg: "#E0EFFF", text: Colors.primary[600] },
+const STATUS_CONFIG: Record<ResumeStatus, { label: string; icon: string }> = {
+  parsed:  { label: "Parsed",    icon: "check-circle" },
+  parsing: { label: "Parsing",   icon: "loader" },
+  failed:  { label: "Failed",    icon: "x-circle" },
+  pending: { label: "Pending",   icon: "clock" },
 };
 
 function ResumeCard({ resume, onDelete }: { resume: Resume; onDelete: () => void }) {
+  const theme = useTheme();
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const cfg = STATUS_CONFIG[resume.status];
+
+  const statusColor = {
+    parsed: theme.success,
+    parsing: theme.warning,
+    failed: theme.error,
+    pending: theme.primary,
+  }[resume.status];
+
+  const statusBg = {
+    parsed: theme.successMuted,
+    parsing: theme.warningMuted,
+    failed: theme.errorMuted,
+    pending: theme.primaryMuted,
+  }[resume.status];
+
   return (
-    <Pressable
-      style={({ pressed }) => [styles.card, { opacity: pressed ? 0.9 : 1 }]}
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push({ pathname: "/resume/[id]", params: { id: resume.id } });
-      }}
-    >
-      <View style={styles.cardTop}>
-        <View style={styles.cardIconWrap}>
-          <Feather
-            name={resume.format === "pdf" ? "file" : "file-text"}
-            size={20}
-            color={Colors.module.resume}
-          />
-        </View>
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardName} numberOfLines={1}>{resume.filename}</Text>
-          <Text style={styles.cardDate}>Uploaded {resume.uploadDate}</Text>
-        </View>
-        <View style={[styles.badge, { backgroundColor: cfg.bg }]}>
-          {resume.status === "parsing" && (
-            <ActivityIndicator size="small" color={cfg.text} style={{ marginRight: 4 }} />
-          )}
-          <Text style={[styles.badgeText, { color: cfg.text }]}>{cfg.label}</Text>
-        </View>
-      </View>
-
-      <View style={styles.cardMeta}>
-        <View style={styles.metaItem}>
-          <Feather name="hard-drive" size={12} color={Colors.neutral[400]} />
-          <Text style={styles.metaText}>{resume.fileSize}</Text>
-        </View>
-        <View style={styles.metaItem}>
-          <Feather name="file" size={12} color={Colors.neutral[400]} />
-          <Text style={styles.metaText}>{resume.format.toUpperCase()}</Text>
-        </View>
-        {resume.skills.length > 0 && (
-          <View style={styles.metaItem}>
-            <Feather name="tag" size={12} color={Colors.neutral[400]} />
-            <Text style={styles.metaText}>{resume.skills.length} skills</Text>
+    <Animated.View style={animStyle}>
+      <Pressable
+        onPressIn={() => { scale.value = withSpring(0.97, { damping: 20 }); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+        onPressOut={() => { scale.value = withSpring(1, { damping: 20 }); }}
+        onPress={() => router.push({ pathname: "/resume/[id]", params: { id: resume.id } })}
+        style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
+      >
+        {/* Top Row */}
+        <View style={styles.cardTop}>
+          <View style={[styles.fileIcon, { backgroundColor: theme.moduleResumeLight }]}>
+            <Feather name="file-text" size={20} color={theme.moduleResume} />
           </View>
-        )}
-      </View>
+          <View style={styles.fileInfo}>
+            <Text style={[styles.fileName, { color: theme.text }]} numberOfLines={1}>{resume.filename}</Text>
+            <Text style={[styles.fileDate, { color: theme.textTertiary }]}>Uploaded {resume.uploadDate}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
+            {resume.status === "parsing"
+              ? <ActivityIndicator size="small" color={statusColor} style={{ marginRight: 4 }} />
+              : <Feather name={cfg.icon as any} size={12} color={statusColor} style={{ marginRight: 4 }} />}
+            <Text style={[styles.statusText, { color: statusColor }]}>{cfg.label}</Text>
+          </View>
+        </View>
 
-      <View style={styles.cardActions}>
-        {resume.status === "parsed" && (
+        {/* Meta */}
+        <View style={styles.metaRow}>
+          <View style={[styles.metaChip, { backgroundColor: theme.bgSecondary }]}>
+            <Feather name="hard-drive" size={10} color={theme.textTertiary} />
+            <Text style={[styles.metaText, { color: theme.textTertiary }]}>{resume.fileSize}</Text>
+          </View>
+          <View style={[styles.metaChip, { backgroundColor: theme.bgSecondary }]}>
+            <Feather name="file" size={10} color={theme.textTertiary} />
+            <Text style={[styles.metaText, { color: theme.textTertiary }]}>{resume.format.toUpperCase()}</Text>
+          </View>
+          {resume.skills.length > 0 && (
+            <View style={[styles.metaChip, { backgroundColor: theme.moduleResumeLight }]}>
+              <Feather name="tag" size={10} color={theme.moduleResume} />
+              <Text style={[styles.metaText, { color: theme.moduleResume }]}>{resume.skills.length} skills</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Actions */}
+        <View style={styles.actions}>
+          {resume.status === "parsed" && (
+            <Pressable
+              style={({ pressed }) => [styles.startBtn, { backgroundColor: theme.moduleResume, opacity: pressed ? 0.85 : 1 }]}
+              onPress={(e) => {
+                e.stopPropagation();
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push("/interview/session");
+              }}
+            >
+              <Feather name="mic" size={14} color="#fff" />
+              <Text style={styles.startBtnText}>Start Interview</Text>
+            </Pressable>
+          )}
           <Pressable
-            style={({ pressed }) => [styles.actionBtn, styles.primaryAction, { opacity: pressed ? 0.85 : 1 }]}
-            onPress={(e) => {
-              e.stopPropagation();
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              router.push("/interview/session");
-            }}
+            style={({ pressed }) => [styles.deleteBtn, { backgroundColor: theme.errorMuted, opacity: pressed ? 0.8 : 1 }]}
+            onPress={(e) => { e.stopPropagation(); onDelete(); }}
           >
-            <Feather name="mic" size={14} color={Colors.white} />
-            <Text style={styles.primaryActionText}>Start Interview</Text>
+            <Feather name="trash-2" size={15} color={theme.error} />
           </Pressable>
-        )}
-        <Pressable
-          style={({ pressed }) => [styles.actionBtn, styles.deleteAction, { opacity: pressed ? 0.85 : 1 }]}
-          onPress={(e) => {
-            e.stopPropagation();
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-            onDelete();
-          }}
-        >
-          <Feather name="trash-2" size={14} color={Colors.semantic.error} />
-        </Pressable>
-      </View>
-    </Pressable>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
-const SAMPLE_FILENAMES = [
-  "software_engineer_resume",
-  "product_manager_cv",
-  "data_scientist_resume",
-  "frontend_developer",
-  "ux_designer_portfolio",
-];
+const SAMPLE_FILES = ["software_engineer", "product_manager", "data_analyst", "frontend_developer", "ux_designer"];
 
 export default function ResumeScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { resumes, addResume, deleteResume } = useResumes();
   const [uploading, setUploading] = useState(false);
-  const webTopPadding = Platform.OS === "web" ? 67 : 0;
+  const webTop = Platform.OS === "web" ? 67 : 0;
 
   const handleUpload = async () => {
     setUploading(true);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const name = SAMPLE_FILENAMES[Math.floor(Math.random() * SAMPLE_FILENAMES.length)];
-    const format = Math.random() > 0.5 ? "pdf" : "docx";
-    addResume(`${name}.${format}`, format);
+    const name = SAMPLE_FILES[Math.floor(Math.random() * SAMPLE_FILES.length)];
+    const fmt = Math.random() > 0.5 ? "pdf" : "docx" as "pdf" | "docx";
+    addResume(`${name}.${fmt}`, fmt);
     setUploading(false);
   };
 
-  const handleDelete = (id: string, name: string) => {
+  const confirmDelete = (id: string, name: string) => {
     Alert.alert("Delete Resume", `Remove "${name}"?`, [
       { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => deleteResume(id),
-      },
+      { text: "Delete", style: "destructive", onPress: () => deleteResume(id) },
     ]);
   };
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + webTopPadding + 16 }]}>
+    <View style={[styles.root, { backgroundColor: theme.bg }]}>
+      <View style={[styles.header, { paddingTop: insets.top + webTop + 16, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
         <View>
-          <Text style={styles.headerTitle}>My Resumes</Text>
-          <Text style={styles.headerSub}>{resumes.length} uploaded</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>My Resumes</Text>
+          <Text style={[styles.headerSub, { color: theme.textSecondary }]}>
+            {resumes.length === 0 ? "Upload your first resume" : `${resumes.length} file${resumes.length > 1 ? "s" : ""} uploaded`}
+          </Text>
         </View>
         <Pressable
-          style={({ pressed }) => [styles.uploadBtn, { opacity: pressed ? 0.85 : 1 }, uploading && styles.uploadBtnDisabled]}
+          style={({ pressed }) => [styles.uploadBtn, { backgroundColor: theme.moduleResume, opacity: pressed ? 0.85 : 1 }, uploading && { backgroundColor: theme.border }]}
           onPress={handleUpload}
           disabled={uploading}
         >
-          {uploading ? (
-            <ActivityIndicator color={Colors.white} size="small" />
-          ) : (
-            <>
-              <Feather name="upload" size={16} color={Colors.white} />
+          {uploading
+            ? <ActivityIndicator color="#fff" size="small" />
+            : <>
+              <Feather name="upload" size={15} color="#fff" />
               <Text style={styles.uploadBtnText}>Upload</Text>
-            </>
-          )}
+            </>}
         </Pressable>
       </View>
 
@@ -161,31 +171,25 @@ export default function ResumeScreen() {
         data={resumes}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ResumeCard
-            resume={item}
-            onDelete={() => handleDelete(item.id, item.filename)}
-          />
+          <ResumeCard resume={item} onDelete={() => confirmDelete(item.id, item.filename)} />
         )}
-        contentContainerStyle={[
-          styles.list,
-          { paddingBottom: insets.bottom + 100 },
-        ]}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 100 }]}
         scrollEnabled={!!resumes.length}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <View style={styles.emptyIconWrap}>
-              <Feather name="file-text" size={36} color={Colors.module.resume} />
+            <View style={[styles.emptyIcon, { backgroundColor: theme.moduleResumeLight }]}>
+              <Feather name="file-plus" size={36} color={theme.moduleResume} />
             </View>
-            <Text style={styles.emptyTitle}>No resumes yet</Text>
-            <Text style={styles.emptyText}>
-              Upload your resume to start practicing with resume-based interview questions
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No resumes yet</Text>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              Upload your resume to enable resume-based interview practice
             </Text>
             <Pressable
-              style={({ pressed }) => [styles.emptyBtn, { opacity: pressed ? 0.85 : 1 }]}
+              style={({ pressed }) => [styles.emptyBtn, { backgroundColor: theme.moduleResume, opacity: pressed ? 0.85 : 1 }]}
               onPress={handleUpload}
             >
-              <Feather name="upload" size={16} color={Colors.white} />
+              <Feather name="upload" size={16} color="#fff" />
               <Text style={styles.emptyBtnText}>Upload Resume</Text>
             </Pressable>
           </View>
@@ -196,86 +200,61 @@ export default function ResumeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.neutral[50] },
+  root: { flex: 1 },
   header: {
     flexDirection: "row", alignItems: "flex-end",
     justifyContent: "space-between",
-    paddingHorizontal: 20, paddingBottom: 16,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1, borderBottomColor: Colors.neutral[100],
+    paddingHorizontal: 16, paddingBottom: 14,
+    borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 24, fontFamily: "Inter_700Bold", color: Colors.neutral[900] },
-  headerSub: { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.neutral[500], marginTop: 2 },
+  headerTitle: { fontSize: 26, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
+  headerSub: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 2 },
   uploadBtn: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: Colors.module.resume,
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
   },
-  uploadBtnDisabled: { backgroundColor: Colors.neutral[300] },
-  uploadBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.white },
-  list: { padding: 16, gap: 12 },
+  uploadBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  list: { padding: 14, gap: 12 },
   card: {
-    backgroundColor: Colors.white, borderRadius: 16,
-    padding: 16,
-    shadowColor: Colors.neutral[900],
+    borderRadius: 18, padding: 16, borderWidth: 1, gap: 12,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
-    gap: 12,
+    shadowOpacity: 0.06, shadowRadius: 10, elevation: 2,
   },
   cardTop: { flexDirection: "row", alignItems: "center", gap: 12 },
-  cardIconWrap: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: Colors.module.resume + "18",
-    alignItems: "center", justifyContent: "center",
-  },
-  cardInfo: { flex: 1 },
-  cardName: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: Colors.neutral[900] },
-  cardDate: { fontSize: 12, fontFamily: "Inter_400Regular", color: Colors.neutral[400], marginTop: 2 },
-  badge: {
+  fileIcon: { width: 46, height: 46, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  fileInfo: { flex: 1 },
+  fileName: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  fileDate: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  statusBadge: {
     flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
   },
-  badgeText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
-  cardMeta: { flexDirection: "row", gap: 16 },
-  metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  metaText: { fontSize: 12, fontFamily: "Inter_400Regular", color: Colors.neutral[400] },
-  cardActions: { flexDirection: "row", gap: 8, alignItems: "center" },
-  actionBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9,
-    borderRadius: 9,
+  statusText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  metaRow: { flexDirection: "row", gap: 6 },
+  metaChip: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
   },
-  primaryAction: { backgroundColor: Colors.module.resume, flex: 1, justifyContent: "center" },
-  primaryActionText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.white },
-  deleteAction: {
-    width: 40, height: 38,
-    backgroundColor: "#FEE5E5",
-    justifyContent: "center",
-    paddingHorizontal: 0,
+  metaText: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  actions: { flexDirection: "row", gap: 8 },
+  startBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center",
+    justifyContent: "center", gap: 6,
+    height: 38, borderRadius: 10,
   },
-  empty: {
-    flex: 1, alignItems: "center", paddingTop: 80, paddingHorizontal: 32, gap: 12,
-  },
-  emptyIconWrap: {
-    width: 80, height: 80, borderRadius: 24,
-    backgroundColor: Colors.module.resume + "12",
+  startBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  deleteBtn: {
+    width: 38, height: 38, borderRadius: 10,
     alignItems: "center", justifyContent: "center",
-    marginBottom: 4,
   },
-  emptyTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold", color: Colors.neutral[700] },
-  emptyText: {
-    fontSize: 14, fontFamily: "Inter_400Regular",
-    color: Colors.neutral[400], textAlign: "center", lineHeight: 22,
-  },
+  empty: { paddingTop: 80, alignItems: "center", gap: 12, paddingHorizontal: 32 },
+  emptyIcon: { width: 88, height: 88, borderRadius: 26, alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  emptyTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
+  emptyText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
   emptyBtn: {
     flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: Colors.module.resume,
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderRadius: 12, marginTop: 8,
+    paddingHorizontal: 24, paddingVertical: 13, borderRadius: 13, marginTop: 8,
   },
-  emptyBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: Colors.white },
+  emptyBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
 });

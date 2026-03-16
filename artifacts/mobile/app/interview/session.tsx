@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -13,40 +14,46 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors } from "@/constants/colors";
 import { useInterviews } from "@/context/InterviewContext";
+import { useTheme } from "@/hooks/useTheme";
 
 const QUESTIONS = [
-  "Tell me about yourself and your background.",
+  "Tell me about yourself and your professional background.",
   "Describe a challenging project you worked on and how you handled it.",
   "What are your greatest strengths and how do they apply to this role?",
   "Where do you see yourself in five years?",
   "Tell me about a time you had to work under pressure.",
   "How do you handle conflict with a team member?",
   "What motivates you in your work?",
-  "Describe a situation where you showed leadership.",
+  "Describe a situation where you demonstrated leadership.",
+];
+
+const FEEDBACK_TIPS = [
+  "Strong response! You clearly articulated your experience using specific examples. Consider adding a quantifiable outcome next time to make it even stronger.",
+  "Good use of the STAR method. Your answer was concise and relevant. Try to mention the impact of your actions more explicitly.",
+  "Excellent communication. You demonstrated self-awareness and growth mindset. Consider adding specific metrics to your example.",
+  "Well-structured answer. Good use of concrete details. Next time, connect it more directly to the role you're applying for.",
 ];
 
 type Phase = "ready" | "recording" | "thinking" | "answer" | "completed";
 
 export default function InterviewSessionScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { addSession } = useInterviews();
   const [phase, setPhase] = useState<Phase>("ready");
   const [currentQ, setCurrentQ] = useState(0);
   const [scores, setScores] = useState<number[]>([]);
   const [elapsed, setElapsed] = useState(0);
   const [sessionStart] = useState(Date.now());
+  const [currentFeedback, setCurrentFeedback] = useState("");
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const webTopPadding = Platform.OS === "web" ? 67 : 0;
-
+  const webTop = Platform.OS === "web" ? 67 : 0;
   const totalQuestions = 5;
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
 
   useEffect(() => {
@@ -54,8 +61,8 @@ export default function InterviewSessionScreen() {
       timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
       const loop = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.2, duration: 700, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.15, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
         ])
       );
       loop.start();
@@ -72,14 +79,16 @@ export default function InterviewSessionScreen() {
     if (phase === "ready" || phase === "answer") {
       setPhase("recording");
     } else if (phase === "recording") {
+      if (timerRef.current) clearInterval(timerRef.current);
       setPhase("thinking");
-      setTimeout(() => setPhase("answer"), 1500);
+      setCurrentFeedback(FEEDBACK_TIPS[Math.floor(Math.random() * FEEDBACK_TIPS.length)]);
+      setTimeout(() => setPhase("answer"), 1800);
     }
   }, [phase]);
 
   const handleNext = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const score = Math.floor(Math.random() * 30) + 65;
+    const score = Math.floor(Math.random() * 28) + 68;
     const newScores = [...scores, score];
     setScores(newScores);
     setElapsed(0);
@@ -103,254 +112,316 @@ export default function InterviewSessionScreen() {
     }
   };
 
-  const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+  const formatTime = (s: number) =>
+    `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
+  const progress = (currentQ / totalQuestions) * 100;
+
+  // Completed screen
   if (phase === "completed") {
     const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+    const scoreColor = avgScore >= 80 ? theme.success : avgScore >= 65 ? theme.warning : theme.error;
     return (
-      <View style={[styles.container, styles.centered]}>
-        <View style={[styles.completedIcon, { marginTop: insets.top + webTopPadding }]}>
-          <Feather name="check-circle" size={56} color={Colors.semantic.success} />
+      <View style={[styles.root, { backgroundColor: theme.bg }]}>
+        <View style={[styles.completedHeader, { paddingTop: insets.top + webTop + 14 }]}>
+          <Pressable
+            style={[styles.iconBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => router.back()}
+          >
+            <Feather name="x" size={18} color={theme.text} />
+          </Pressable>
         </View>
-        <Text style={styles.completedTitle}>Session Complete!</Text>
-        <Text style={styles.completedSub}>Great work practicing your interview skills</Text>
-        <View style={styles.scoreCard}>
-          <Text style={styles.scoreCardValue}>{avgScore}%</Text>
-          <Text style={styles.scoreCardLabel}>Overall Score</Text>
-        </View>
-        <View style={styles.scoreGrid}>
-          {scores.map((s, i) => (
-            <View key={i} style={styles.scoreItem}>
-              <Text style={styles.scoreItemLabel}>Q{i + 1}</Text>
-              <Text style={[styles.scoreItemVal, { color: s >= 75 ? Colors.semantic.success : Colors.semantic.warning }]}>
-                {s}%
-              </Text>
-            </View>
-          ))}
-        </View>
-        <Pressable
-          style={({ pressed }) => [styles.doneBtn, { opacity: pressed ? 0.9 : 1 }]}
-          onPress={() => router.back()}
+        <ScrollView
+          contentContainerStyle={[styles.completedContent, { paddingBottom: insets.bottom + 40 }]}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.doneBtnText}>Back to Home</Text>
-        </Pressable>
+          <View style={[styles.completedBadge, { backgroundColor: theme.successMuted }]}>
+            <Feather name="check-circle" size={40} color={theme.success} />
+          </View>
+          <Text style={[styles.completedTitle, { color: theme.text }]}>Session Complete</Text>
+          <Text style={[styles.completedSub, { color: theme.textSecondary }]}>
+            Great work on your interview practice
+          </Text>
+
+          {/* Score Display */}
+          <View style={[styles.scoreCircle, { borderColor: scoreColor + "40", backgroundColor: scoreColor + "10" }]}>
+            <Text style={[styles.scoreCircleVal, { color: scoreColor }]}>{avgScore}%</Text>
+            <Text style={[styles.scoreCircleLabel, { color: theme.textTertiary }]}>Overall Score</Text>
+          </View>
+
+          {/* Per-question scores */}
+          <View style={[styles.scoreGrid, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <Text style={[styles.scoreGridTitle, { color: theme.text }]}>Question Breakdown</Text>
+            <View style={styles.scoreGridRow}>
+              {scores.map((s, i) => {
+                const c = s >= 80 ? theme.success : s >= 65 ? theme.warning : theme.error;
+                return (
+                  <View key={i} style={styles.scoreGridItem}>
+                    <View style={{ flex: 1, justifyContent: "flex-end", paddingBottom: 4 }}>
+                      <View style={[styles.scoreBar, { height: `${s}%` as any, backgroundColor: c + "35" }]}>
+                        <View style={[styles.scoreBarFill, { height: "60%", backgroundColor: c }]} />
+                      </View>
+                    </View>
+                    <Text style={[styles.scoreGridQ, { color: theme.textTertiary }]}>Q{i + 1}</Text>
+                    <Text style={[styles.scoreGridVal, { color: c }]}>{s}%</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+
+          <Pressable
+            style={({ pressed }) => [styles.doneBtn, { backgroundColor: theme.primary, opacity: pressed ? 0.88 : 1 }]}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.doneBtnText}>Back to Home</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.retryBtn, { borderColor: theme.border, opacity: pressed ? 0.7 : 1 }]}
+            onPress={() => {
+              setPhase("ready");
+              setCurrentQ(0);
+              setScores([]);
+              setElapsed(0);
+            }}
+          >
+            <Feather name="refresh-cw" size={15} color={theme.textSecondary} />
+            <Text style={[styles.retryBtnText, { color: theme.textSecondary }]}>Practice Again</Text>
+          </Pressable>
+        </ScrollView>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + webTopPadding + 8 }]}>
-        <Pressable style={styles.closeBtn} onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.back();
-        }}>
-          <Feather name="x" size={20} color={Colors.neutral[600]} />
+    <View style={[styles.root, { backgroundColor: theme.bg }]}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + webTop + 12, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+        <Pressable
+          style={[styles.iconBtn, { backgroundColor: theme.bgSecondary }]}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.back(); }}
+        >
+          <Feather name="x" size={18} color={theme.text} />
         </Pressable>
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${((currentQ) / totalQuestions) * 100}%` }]} />
+
+        <View style={styles.progressWrap}>
+          <View style={[styles.progressTrack, { backgroundColor: theme.bgSecondary }]}>
+            <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.primary }]} />
+          </View>
+          <Text style={[styles.progressText, { color: theme.textTertiary }]}>{currentQ}/{totalQuestions}</Text>
         </View>
-        <Text style={styles.progressText}>{currentQ}/{totalQuestions}</Text>
+
+        <View style={[styles.timerBadge, { backgroundColor: phase === "recording" ? theme.errorMuted : theme.bgSecondary }]}>
+          <Feather name="clock" size={12} color={phase === "recording" ? theme.error : theme.textTertiary} />
+          <Text style={[styles.timerText, { color: phase === "recording" ? theme.error : theme.textTertiary }]}>
+            {formatTime(elapsed)}
+          </Text>
+        </View>
       </View>
 
+      {/* Content */}
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 160 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.qModule}>
-          <Feather name="users" size={14} color={Colors.module.hr} />
-          <Text style={styles.qModuleText}>HR Interview</Text>
+        {/* Module tag */}
+        <View style={[styles.moduleTag, { backgroundColor: theme.moduleHRLight }]}>
+          <Feather name="users" size={13} color={theme.moduleHR} />
+          <Text style={[styles.moduleTagText, { color: theme.moduleHR }]}>HR Interview</Text>
         </View>
 
-        <Text style={styles.qNum}>Question {currentQ + 1}</Text>
-        <Text style={styles.question}>{QUESTIONS[currentQ % QUESTIONS.length]}</Text>
+        {/* Question */}
+        <View style={styles.questionSection}>
+          <Text style={[styles.qNum, { color: theme.textTertiary }]}>Question {currentQ + 1}</Text>
+          <Text style={[styles.question, { color: theme.text }]}>
+            {QUESTIONS[currentQ % QUESTIONS.length]}
+          </Text>
+        </View>
 
-        {phase === "answer" && (
-          <View style={styles.feedbackCard}>
-            <View style={styles.feedbackHeader}>
-              <Feather name="zap" size={16} color={Colors.tertiary[500]} />
-              <Text style={styles.feedbackTitle}>AI Feedback</Text>
-            </View>
-            <Text style={styles.feedbackText}>
-              Good response! You clearly articulated your experience and used specific examples. 
-              Consider structuring with the STAR method for even clearer communication. 
-              Your confidence level was strong throughout.
+        {/* Tips */}
+        {phase === "ready" && (
+          <View style={[styles.tipCard, { backgroundColor: theme.primaryLight, borderColor: theme.primary + "20" }]}>
+            <Feather name="info" size={15} color={theme.primary} />
+            <Text style={[styles.tipText, { color: theme.primary }]}>
+              Use the STAR method: Situation, Task, Action, Result
             </Text>
           </View>
         )}
 
+        {/* Thinking */}
         {phase === "thinking" && (
-          <View style={styles.thinkingCard}>
-            <Feather name="cpu" size={18} color={Colors.primary[500]} />
-            <Text style={styles.thinkingText}>Analyzing your response...</Text>
+          <View style={[styles.thinkingCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={[styles.thinkingDot, { backgroundColor: theme.primaryMuted }]}>
+              <Feather name="cpu" size={16} color={theme.primary} />
+            </View>
+            <View>
+              <Text style={[styles.thinkingTitle, { color: theme.text }]}>Analyzing response...</Text>
+              <Text style={[styles.thinkingSub, { color: theme.textSecondary }]}>AI is reviewing your answer</Text>
+            </View>
+          </View>
+        )}
+
+        {/* AI Feedback */}
+        {phase === "answer" && (
+          <View style={[styles.feedbackCard, { backgroundColor: theme.card, borderColor: theme.border, borderLeftColor: theme.success }]}>
+            <View style={styles.feedbackHeader}>
+              <View style={[styles.feedbackIcon, { backgroundColor: theme.successMuted }]}>
+                <Feather name="zap" size={14} color={theme.success} />
+              </View>
+              <Text style={[styles.feedbackTitle, { color: theme.text }]}>AI Feedback</Text>
+            </View>
+            <Text style={[styles.feedbackText, { color: theme.textSecondary }]}>{currentFeedback}</Text>
+            <View style={styles.feedbackTags}>
+              {["Clear Communication", "Strong Examples"].map((t) => (
+                <View key={t} style={[styles.feedbackTag, { backgroundColor: theme.successMuted }]}>
+                  <Feather name="check" size={10} color={theme.success} />
+                  <Text style={[styles.feedbackTagText, { color: theme.success }]}>{t}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         )}
       </ScrollView>
 
-      <View style={[styles.controls, { paddingBottom: insets.bottom + 16 }]}>
-        {phase !== "answer" && (
-          <View style={styles.timerRow}>
-            <Feather name="clock" size={14} color={Colors.neutral[400]} />
-            <Text style={styles.timer}>{formatTime(elapsed)}</Text>
+      {/* Controls */}
+      <View style={[styles.controls, { backgroundColor: theme.card, borderTopColor: theme.border, paddingBottom: insets.bottom + 12 }]}>
+        {phase === "answer" ? (
+          <Pressable
+            style={({ pressed }) => [styles.nextBtn, { backgroundColor: theme.primary, opacity: pressed ? 0.88 : 1 }]}
+            onPress={handleNext}
+          >
+            <Text style={styles.nextBtnText}>
+              {currentQ + 1 >= totalQuestions ? "Finish Session" : "Next Question"}
+            </Text>
+            <Feather name="arrow-right" size={18} color="#fff" />
+          </Pressable>
+        ) : (
+          <View style={styles.micSection}>
+            <Text style={[styles.micHint, { color: phase === "recording" ? theme.error : theme.textTertiary }]}>
+              {phase === "ready" && "Tap the microphone to begin"}
+              {phase === "recording" && "Recording — tap again to stop"}
+              {phase === "thinking" && "Processing your response..."}
+            </Text>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <LinearGradient
+                colors={phase === "recording"
+                  ? [theme.error, "#C72B2B"]
+                  : [theme.primary, theme.primaryDark]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={styles.micBtn}
+              >
+                <Pressable style={styles.micBtnInner} onPress={handleMicPress} disabled={phase === "thinking"}>
+                  <Feather
+                    name={phase === "recording" ? "square" : "mic"}
+                    size={28} color="#fff"
+                  />
+                </Pressable>
+              </LinearGradient>
+            </Animated.View>
           </View>
         )}
-
-        <View style={styles.micRow}>
-          {phase === "ready" && (
-            <Text style={styles.hint}>Tap the mic to start answering</Text>
-          )}
-          {phase === "recording" && (
-            <Text style={[styles.hint, { color: Colors.semantic.error }]}>Recording... Tap to stop</Text>
-          )}
-
-          {phase === "answer" ? (
-            <Pressable
-              style={({ pressed }) => [styles.nextBtn, { opacity: pressed ? 0.9 : 1 }]}
-              onPress={handleNext}
-            >
-              <Text style={styles.nextBtnText}>
-                {currentQ + 1 >= totalQuestions ? "Finish Session" : "Next Question"}
-              </Text>
-              <Feather name="arrow-right" size={18} color={Colors.white} />
-            </Pressable>
-          ) : (
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <Pressable
-                style={[styles.micBtn, phase === "recording" && styles.micBtnActive]}
-                onPress={handleMicPress}
-              >
-                <Feather
-                  name={phase === "recording" ? "square" : "mic"}
-                  size={28}
-                  color={Colors.white}
-                />
-              </Pressable>
-            </Animated.View>
-          )}
-        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.neutral[50] },
-  centered: { alignItems: "center", justifyContent: "center", paddingHorizontal: 24, gap: 16 },
+  root: { flex: 1 },
   header: {
-    flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 16, paddingBottom: 16,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1, borderBottomColor: Colors.neutral[100],
-    gap: 12,
-  },
-  closeBtn: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: Colors.neutral[100],
-    alignItems: "center", justifyContent: "center",
-  },
-  progressBar: {
-    flex: 1, height: 6, borderRadius: 3,
-    backgroundColor: Colors.neutral[200],
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%", borderRadius: 3,
-    backgroundColor: Colors.primary[500],
-  },
-  progressText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.neutral[500] },
-  content: { padding: 20, gap: 20 },
-  qModule: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: Colors.module.hr + "14",
-    alignSelf: "flex-start",
-    paddingHorizontal: 12, paddingVertical: 5,
-    borderRadius: 8,
-  },
-  qModuleText: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: Colors.module.hr },
-  qNum: { fontSize: 13, fontFamily: "Inter_500Medium", color: Colors.neutral[400] },
-  question: {
-    fontSize: 22, fontFamily: "Inter_700Bold",
-    color: Colors.neutral[900], lineHeight: 32,
-  },
-  feedbackCard: {
-    backgroundColor: Colors.white, borderRadius: 16,
-    padding: 18, gap: 10,
-    borderLeftWidth: 3, borderLeftColor: Colors.tertiary[500],
-    shadowColor: Colors.neutral[900],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  feedbackHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
-  feedbackTitle: { fontSize: 14, fontFamily: "Inter_700Bold", color: Colors.tertiary[500] },
-  feedbackText: {
-    fontSize: 14, fontFamily: "Inter_400Regular",
-    color: Colors.neutral[700], lineHeight: 22,
-  },
-  thinkingCard: {
     flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: Colors.primary[50], borderRadius: 14, padding: 16,
+    paddingHorizontal: 16, paddingBottom: 14,
+    borderBottomWidth: 1,
   },
-  thinkingText: { fontSize: 14, fontFamily: "Inter_500Medium", color: Colors.primary[600] },
+  iconBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  progressWrap: { flex: 1, gap: 4 },
+  progressTrack: { height: 5, borderRadius: 3, overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 3 },
+  progressText: { fontSize: 11, fontFamily: "Inter_500Medium", textAlign: "right" },
+  timerBadge: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10,
+  },
+  timerText: { fontSize: 13, fontFamily: "Inter_700Bold" },
+  content: { padding: 20, gap: 20 },
+  moduleTag: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10,
+  },
+  moduleTagText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  questionSection: { gap: 8 },
+  qNum: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  question: { fontSize: 22, fontFamily: "Inter_700Bold", lineHeight: 32, letterSpacing: -0.3 },
+  tipCard: {
+    flexDirection: "row", alignItems: "flex-start", gap: 10,
+    borderRadius: 14, padding: 14, borderWidth: 1,
+  },
+  tipText: { flex: 1, fontSize: 13, fontFamily: "Inter_500Medium", lineHeight: 20 },
+  thinkingCard: {
+    flexDirection: "row", alignItems: "center", gap: 14,
+    borderRadius: 14, padding: 16, borderWidth: 1,
+  },
+  thinkingDot: { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  thinkingTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  thinkingSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  feedbackCard: {
+    borderRadius: 16, borderWidth: 1, borderLeftWidth: 3, padding: 16, gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+  },
+  feedbackHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  feedbackIcon: { width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  feedbackTitle: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  feedbackText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 },
+  feedbackTags: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  feedbackTag: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  feedbackTagText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
   controls: {
     position: "absolute", bottom: 0, left: 0, right: 0,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1, borderTopColor: Colors.neutral[100],
-    paddingHorizontal: 24, paddingTop: 16,
-    alignItems: "center", gap: 12,
+    paddingHorizontal: 20, paddingTop: 16,
+    borderTopWidth: 1, alignItems: "center",
   },
-  timerRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  timer: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.neutral[500] },
-  micRow: { alignItems: "center", gap: 8 },
-  hint: { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.neutral[400] },
-  micBtn: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: Colors.primary[500],
-    alignItems: "center", justifyContent: "center",
-    shadowColor: Colors.primary[700],
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  micBtnActive: { backgroundColor: Colors.semantic.error },
+  micSection: { alignItems: "center", gap: 12 },
+  micHint: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  micBtn: { width: 76, height: 76, borderRadius: 38, overflow: "hidden" },
+  micBtnInner: { flex: 1, alignItems: "center", justifyContent: "center" },
   nextBtn: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: Colors.primary[500],
-    paddingHorizontal: 28, paddingVertical: 14,
-    borderRadius: 14,
+    height: 52, paddingHorizontal: 28, borderRadius: 15, width: "100%",
+    justifyContent: "center",
   },
-  nextBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: Colors.white },
-  completedIcon: { marginBottom: 8 },
-  completedTitle: { fontSize: 28, fontFamily: "Inter_700Bold", color: Colors.neutral[900] },
-  completedSub: { fontSize: 15, fontFamily: "Inter_400Regular", color: Colors.neutral[500], textAlign: "center" },
-  scoreCard: {
-    backgroundColor: Colors.primary[50], borderRadius: 20,
-    paddingVertical: 24, paddingHorizontal: 48,
-    alignItems: "center",
-    borderWidth: 2, borderColor: Colors.primary[200],
+  nextBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  // Completed
+  completedHeader: { paddingHorizontal: 16, paddingBottom: 12 },
+  completedContent: { padding: 24, alignItems: "center", gap: 16 },
+  completedBadge: { width: 80, height: 80, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  completedTitle: { fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
+  completedSub: { fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "center" },
+  scoreCircle: {
+    width: 160, height: 160, borderRadius: 80,
+    borderWidth: 3, alignItems: "center", justifyContent: "center", gap: 4,
   },
-  scoreCardValue: { fontSize: 52, fontFamily: "Inter_700Bold", color: Colors.primary[600] },
-  scoreCardLabel: { fontSize: 14, fontFamily: "Inter_500Medium", color: Colors.neutral[500], marginTop: 4 },
-  scoreGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "center" },
-  scoreItem: {
-    width: 64, paddingVertical: 10,
-    backgroundColor: Colors.white, borderRadius: 12,
-    alignItems: "center", gap: 4,
-    shadowColor: Colors.neutral[900],
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+  scoreCircleVal: { fontSize: 44, fontFamily: "Inter_700Bold", letterSpacing: -1 },
+  scoreCircleLabel: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  scoreGrid: {
+    borderRadius: 20, borderWidth: 1, padding: 16, gap: 12, width: "100%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
-  scoreItemLabel: { fontSize: 12, fontFamily: "Inter_500Medium", color: Colors.neutral[400] },
-  scoreItemVal: { fontSize: 16, fontFamily: "Inter_700Bold" },
-  doneBtn: {
-    backgroundColor: Colors.primary[500],
-    paddingHorizontal: 36, paddingVertical: 16,
-    borderRadius: 14, marginTop: 8,
+  scoreGridTitle: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  scoreGridRow: { flexDirection: "row", gap: 6, height: 80, justifyContent: "center" },
+  scoreGridItem: { flex: 1, alignItems: "center", gap: 3 },
+  scoreBar: { width: "100%", borderRadius: 4, justifyContent: "flex-end", overflow: "hidden" },
+  scoreBarFill: { width: "100%", borderRadius: 2 },
+  scoreGridQ: { fontSize: 10, fontFamily: "Inter_400Regular" },
+  scoreGridVal: { fontSize: 12, fontFamily: "Inter_700Bold" },
+  doneBtn: { height: 52, borderRadius: 15, paddingHorizontal: 40, alignItems: "center", justifyContent: "center", width: "100%" },
+  doneBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  retryBtn: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    borderWidth: 1.5, height: 48, borderRadius: 15, paddingHorizontal: 28, width: "100%", justifyContent: "center",
   },
-  doneBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: Colors.white },
+  retryBtnText: { fontSize: 15, fontFamily: "Inter_500Medium" },
 });

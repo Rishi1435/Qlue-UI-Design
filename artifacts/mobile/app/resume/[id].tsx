@@ -13,24 +13,53 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors } from "@/constants/colors";
 import { useResumes } from "@/context/ResumeContext";
+import { useTheme } from "@/hooks/useTheme";
+
+function Tag({ label, color, bg }: { label: string; color: string; bg: string }) {
+  return (
+    <View style={[styles.tag, { backgroundColor: bg }]}>
+      <Text style={[styles.tagText, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
+function SectionBlock({
+  title, icon, iconColor, children,
+}: { title: string; icon: string; iconColor: string; children: React.ReactNode }) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.sectionBlock, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      <View style={styles.sectionBlockHeader}>
+        <View style={[styles.sectionBlockIcon, { backgroundColor: iconColor + "18" }]}>
+          <Feather name={icon as any} size={15} color={iconColor} />
+        </View>
+        <Text style={[styles.sectionBlockTitle, { color: theme.text }]}>{title}</Text>
+      </View>
+      {children}
+    </View>
+  );
+}
 
 export default function ResumeDetailScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getResume, deleteResume } = useResumes();
-  const resume = getResume(id);
-  const webTopPadding = Platform.OS === "web" ? 67 : 0;
+  const { resumes, deleteResume } = useResumes();
+  const webTop = Platform.OS === "web" ? 67 : 0;
+
+  const resume = resumes.find((r) => r.id === id);
 
   if (!resume) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <Feather name="alert-circle" size={48} color={Colors.neutral[300]} />
-        <Text style={styles.notFoundText}>Resume not found</Text>
-        <Pressable style={styles.backPill} onPress={() => router.back()}>
-          <Text style={styles.backPillText}>Go Back</Text>
+      <View style={[styles.root, { backgroundColor: theme.bg, paddingTop: insets.top + webTop }]}>
+        <Pressable style={[styles.backRow, { backgroundColor: theme.bgSecondary }]} onPress={() => router.back()}>
+          <Feather name="arrow-left" size={20} color={theme.text} />
         </Pressable>
+        <View style={styles.notFound}>
+          <Feather name="alert-circle" size={40} color={theme.textTertiary} />
+          <Text style={[styles.notFoundText, { color: theme.text }]}>Resume not found</Text>
+        </View>
       </View>
     );
   }
@@ -39,99 +68,147 @@ export default function ResumeDetailScreen() {
     Alert.alert("Delete Resume", `Remove "${resume.filename}"?`, [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          await deleteResume(resume.id);
-          router.back();
-        },
+        text: "Delete", style: "destructive",
+        onPress: async () => { await deleteResume(resume.id); router.back(); },
       },
     ]);
   };
 
-  const handleStartInterview = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push("/interview/session");
-  };
-
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + webTopPadding + 8 }]}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={20} color={Colors.neutral[700]} />
+    <View style={[styles.root, { backgroundColor: theme.bg }]}>
+      {/* Header bar */}
+      <View style={[styles.headerBar, { paddingTop: insets.top + webTop + 12, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+        <Pressable style={[styles.headerBtn, { backgroundColor: theme.bgSecondary }]} onPress={() => router.back()}>
+          <Feather name="arrow-left" size={19} color={theme.text} />
         </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>Resume Details</Text>
-        <Pressable style={styles.deleteHeaderBtn} onPress={handleDelete}>
-          <Feather name="trash-2" size={18} color={Colors.semantic.error} />
+        <View style={styles.headerCenter}>
+          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>{resume.filename}</Text>
+          <View style={[styles.headerBadge, {
+            backgroundColor: resume.status === "parsed" ? theme.successMuted : resume.status === "parsing" ? theme.warningMuted : theme.errorMuted
+          }]}>
+            <View style={[styles.headerDot, {
+              backgroundColor: resume.status === "parsed" ? theme.success : resume.status === "parsing" ? theme.warning : theme.error
+            }]} />
+            <Text style={[styles.headerBadgeText, {
+              color: resume.status === "parsed" ? theme.success : resume.status === "parsing" ? theme.warning : theme.error
+            }]}>
+              {resume.status === "parsed" ? "Ready" : resume.status === "parsing" ? "Processing" : "Failed"}
+            </Text>
+          </View>
+        </View>
+        <Pressable style={[styles.headerBtn, { backgroundColor: theme.errorMuted }]} onPress={handleDelete}>
+          <Feather name="trash-2" size={17} color={theme.error} />
         </Pressable>
       </View>
 
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 110 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.fileCard}>
-          <View style={styles.fileIconBig}>
-            <Feather
-              name={resume.format === "pdf" ? "file" : "file-text"}
-              size={32}
-              color={Colors.module.resume}
-            />
+        {/* File Info Card */}
+        <View style={[styles.fileInfoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View style={[styles.fileIconBig, { backgroundColor: theme.moduleResumeLight }]}>
+            <Feather name="file-text" size={32} color={theme.moduleResume} />
           </View>
-          <View style={styles.fileInfo}>
-            <Text style={styles.fileName} numberOfLines={2}>{resume.filename}</Text>
-            <View style={styles.metaRow}>
-              <MetaPill icon="hard-drive" text={resume.fileSize} />
-              <MetaPill icon="file" text={resume.format.toUpperCase()} />
-              <MetaPill icon="calendar" text={resume.uploadDate} />
-            </View>
-          </View>
-        </View>
-
-        {resume.status === "parsing" && (
-          <View style={styles.parsingCard}>
-            <Feather name="loader" size={20} color={Colors.semantic.warning} />
-            <View>
-              <Text style={styles.parsingTitle}>Parsing your resume...</Text>
-              <Text style={styles.parsingText}>We're extracting skills and experience</Text>
-            </View>
-          </View>
-        )}
-
-        {resume.status === "parsed" && resume.skills.length > 0 && (
-          <View style={styles.skillsSection}>
-            <Text style={styles.sectionTitle}>Parsed Skills</Text>
-            <Text style={styles.sectionSub}>{resume.skills.length} skills identified</Text>
-            <View style={styles.skillsGrid}>
-              {resume.skills.map((skill) => (
-                <View key={skill} style={styles.skillChip}>
-                  <Text style={styles.skillText}>{skill}</Text>
+          <View style={{ flex: 1, gap: 8 }}>
+            <Text style={[styles.filename, { color: theme.text }]}>{resume.filename}</Text>
+            <View style={styles.fileMeta}>
+              {[
+                { label: resume.format.toUpperCase(), icon: "file" },
+                { label: resume.fileSize, icon: "hard-drive" },
+                { label: resume.uploadDate, icon: "calendar" },
+              ].map((m) => (
+                <View key={m.label} style={[styles.metaChip, { backgroundColor: theme.bgSecondary }]}>
+                  <Feather name={m.icon as any} size={11} color={theme.textTertiary} />
+                  <Text style={[styles.metaText, { color: theme.textSecondary }]}>{m.label}</Text>
                 </View>
               ))}
             </View>
           </View>
+        </View>
+
+        {/* Parsing / Failed state */}
+        {resume.status === "parsing" && (
+          <View style={[styles.stateCard, { backgroundColor: theme.warningMuted, borderColor: theme.warning + "30" }]}>
+            <Feather name="loader" size={18} color={theme.warning} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.stateTitle, { color: theme.text }]}>Parsing your resume...</Text>
+              <Text style={[styles.stateSub, { color: theme.textSecondary }]}>Extracting skills and experience</Text>
+            </View>
+          </View>
+        )}
+        {resume.status === "failed" && (
+          <View style={[styles.stateCard, { backgroundColor: theme.errorMuted, borderColor: theme.error + "30" }]}>
+            <Feather name="alert-triangle" size={18} color={theme.error} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.stateTitle, { color: theme.error }]}>Parsing failed</Text>
+              <Text style={[styles.stateSub, { color: theme.textSecondary }]}>Please try uploading again</Text>
+            </View>
+          </View>
         )}
 
-        {resume.status === "failed" && (
-          <View style={styles.failedCard}>
-            <Feather name="alert-triangle" size={24} color={Colors.semantic.error} />
-            <Text style={styles.failedTitle}>Parsing failed</Text>
-            <Text style={styles.failedText}>
-              We couldn't extract skills from this file. Please try uploading again.
-            </Text>
-          </View>
+        {/* Skills */}
+        {resume.skills.length > 0 && (
+          <SectionBlock title="Skills & Technologies" icon="tag" iconColor={theme.moduleResume}>
+            <View style={styles.tagWrap}>
+              {resume.skills.map((s) => (
+                <Tag key={s} label={s} color={theme.moduleResume} bg={theme.moduleResumeLight} />
+              ))}
+            </View>
+          </SectionBlock>
+        )}
+
+        {/* Experience */}
+        {resume.experience && resume.experience.length > 0 && (
+          <SectionBlock title="Work Experience" icon="briefcase" iconColor={theme.moduleHR}>
+            {resume.experience.map((exp, i) => (
+              <View key={i} style={[styles.expItem, i > 0 && { borderTopWidth: 1, borderTopColor: theme.borderSubtle }]}>
+                <View style={styles.expRow}>
+                  <Text style={[styles.expRole, { color: theme.text }]}>{exp.role}</Text>
+                  <View style={[styles.yearChip, { backgroundColor: theme.primaryMuted }]}>
+                    <Text style={[styles.yearText, { color: theme.primary }]}>{exp.years}</Text>
+                  </View>
+                </View>
+                <Text style={[styles.expCompany, { color: theme.textSecondary }]}>{exp.company}</Text>
+                {exp.description && (
+                  <Text style={[styles.expDesc, { color: theme.textTertiary }]}>{exp.description}</Text>
+                )}
+              </View>
+            ))}
+          </SectionBlock>
+        )}
+
+        {/* Education */}
+        {resume.education && resume.education.length > 0 && (
+          <SectionBlock title="Education" icon="book-open" iconColor={theme.moduleWeb}>
+            {resume.education.map((edu, i) => (
+              <View key={i} style={[styles.expItem, i > 0 && { borderTopWidth: 1, borderTopColor: theme.borderSubtle }]}>
+                <Text style={[styles.expRole, { color: theme.text }]}>{edu.degree}</Text>
+                <Text style={[styles.expCompany, { color: theme.textSecondary }]}>{edu.institution}</Text>
+                <Text style={[styles.expDesc, { color: theme.textTertiary }]}>{edu.year}</Text>
+              </View>
+            ))}
+          </SectionBlock>
+        )}
+
+        {/* Summary */}
+        {resume.summary && (
+          <SectionBlock title="Professional Summary" icon="align-left" iconColor={theme.secondary}>
+            <Text style={[styles.summaryText, { color: theme.textSecondary }]}>{resume.summary}</Text>
+          </SectionBlock>
         )}
       </ScrollView>
 
+      {/* CTA */}
       {resume.status === "parsed" && (
-        <View style={[styles.cta, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.ctaBar, { backgroundColor: theme.card, borderTopColor: theme.border, paddingBottom: insets.bottom + 12 }]}>
           <Pressable
-            style={({ pressed }) => [styles.startBtn, { opacity: pressed ? 0.9 : 1 }]}
-            onPress={handleStartInterview}
+            style={({ pressed }) => [styles.bigStartBtn, { backgroundColor: theme.moduleResume, opacity: pressed ? 0.88 : 1 }]}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/interview/session"); }}
           >
-            <Feather name="mic" size={20} color={Colors.white} />
-            <Text style={styles.startBtnText}>Start Resume Interview</Text>
+            <Feather name="mic" size={19} color="#fff" />
+            <Text style={styles.bigStartBtnText}>Start Interview Session</Text>
+            <Feather name="arrow-right" size={16} color="rgba(255,255,255,0.7)" />
           </Pressable>
         </View>
       )}
@@ -139,109 +216,68 @@ export default function ResumeDetailScreen() {
   );
 }
 
-function MetaPill({ icon, text }: { icon: string; text: string }) {
-  return (
-    <View style={styles.metaPill}>
-      <Feather name={icon as any} size={11} color={Colors.neutral[400]} />
-      <Text style={styles.metaPillText}>{text}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.neutral[50] },
-  centered: { alignItems: "center", justifyContent: "center", gap: 12 },
-  header: {
-    flexDirection: "row", alignItems: "center",
+  root: { flex: 1 },
+  headerBar: {
+    flexDirection: "row", alignItems: "center", gap: 12,
     paddingHorizontal: 16, paddingBottom: 14,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1, borderBottomColor: Colors.neutral[100],
-    gap: 12,
+    borderBottomWidth: 1,
   },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: Colors.neutral[100],
-    alignItems: "center", justifyContent: "center",
-  },
-  headerTitle: { flex: 1, fontSize: 18, fontFamily: "Inter_700Bold", color: Colors.neutral[900] },
-  deleteHeaderBtn: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: "#FEE5E5",
-    alignItems: "center", justifyContent: "center",
-  },
-  content: { padding: 16, gap: 16 },
-  fileCard: {
-    backgroundColor: Colors.white, borderRadius: 16,
-    padding: 20, flexDirection: "row", gap: 16,
-    alignItems: "center",
-    shadowColor: Colors.neutral[900],
+  headerBtn: { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  headerCenter: { flex: 1, gap: 4 },
+  headerTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  headerBadge: { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  headerDot: { width: 6, height: 6, borderRadius: 3 },
+  headerBadgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  content: { padding: 16, gap: 12 },
+  fileInfoCard: {
+    flexDirection: "row", gap: 14, padding: 16,
+    borderRadius: 18, borderWidth: 1,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
-  fileIconBig: {
-    width: 64, height: 64, borderRadius: 16,
-    backgroundColor: Colors.module.resume + "18",
-    alignItems: "center", justifyContent: "center",
+  fileIconBig: { width: 64, height: 64, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  filename: { fontSize: 16, fontFamily: "Inter_700Bold", flexShrink: 1 },
+  fileMeta: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  metaChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  metaText: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  stateCard: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    borderRadius: 14, padding: 14, borderWidth: 1,
   },
-  fileInfo: { flex: 1, gap: 8 },
-  fileName: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: Colors.neutral[900] },
-  metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  metaPill: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: Colors.neutral[100],
-    paddingHorizontal: 8, paddingVertical: 4,
-    borderRadius: 6,
-  },
-  metaPillText: { fontSize: 11, fontFamily: "Inter_400Regular", color: Colors.neutral[500] },
-  parsingCard: {
-    flexDirection: "row", alignItems: "center", gap: 14,
-    backgroundColor: "#FFF7D4", borderRadius: 14, padding: 16,
-  },
-  parsingTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.neutral[800] },
-  parsingText: { fontSize: 12, fontFamily: "Inter_400Regular", color: Colors.neutral[500], marginTop: 2 },
-  skillsSection: {
-    backgroundColor: Colors.white, borderRadius: 16,
-    padding: 20, gap: 12,
-    shadowColor: Colors.neutral[900],
+  stateTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  stateSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  sectionBlock: {
+    borderRadius: 18, borderWidth: 1, overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
-  sectionTitle: { fontSize: 18, fontFamily: "Inter_700Bold", color: Colors.neutral[900] },
-  sectionSub: { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.neutral[500], marginTop: -4 },
-  skillsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
-  skillChip: {
-    backgroundColor: Colors.module.resume + "14",
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 8,
-  },
-  skillText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: Colors.module.resume },
-  failedCard: {
-    backgroundColor: "#FEE5E5", borderRadius: 14,
-    padding: 20, alignItems: "center", gap: 10,
-  },
-  failedTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: Colors.semantic.error },
-  failedText: { fontSize: 13, fontFamily: "Inter_400Regular", color: Colors.neutral[600], textAlign: "center" },
-  cta: {
+  sectionBlockHeader: { flexDirection: "row", alignItems: "center", gap: 10, padding: 16, paddingBottom: 12 },
+  sectionBlockIcon: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  sectionBlockTitle: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  tagWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 16, paddingBottom: 16 },
+  tag: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10 },
+  tagText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  expItem: { padding: 16, gap: 4 },
+  expRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
+  expRole: { fontSize: 14, fontFamily: "Inter_600SemiBold", flex: 1 },
+  yearChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  yearText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  expCompany: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  expDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18, marginTop: 4 },
+  summaryText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, padding: 16, paddingTop: 0 },
+  ctaBar: {
     position: "absolute", bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 16, paddingTop: 12,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1, borderTopColor: Colors.neutral[100],
+    paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1,
   },
-  startBtn: {
+  bigStartBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 10, backgroundColor: Colors.module.resume,
-    height: 52, borderRadius: 14,
+    gap: 10, height: 52, borderRadius: 15,
   },
-  startBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: Colors.white },
-  notFoundText: { fontSize: 16, fontFamily: "Inter_500Medium", color: Colors.neutral[500] },
-  backPill: {
-    backgroundColor: Colors.primary[500],
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderRadius: 10,
-  },
-  backPillText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: Colors.white },
+  bigStartBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  backRow: { margin: 16, width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  notFound: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
+  notFoundText: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
 });

@@ -5,10 +5,10 @@ import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors } from "@/constants/colors";
+import { useTheme } from "@/hooks/useTheme";
 
 function NativeTabLayout() {
   return (
@@ -34,9 +34,8 @@ function NativeTabLayout() {
 }
 
 function ClassicTabLayout() {
-  const colorScheme = useColorScheme();
+  const theme = useTheme();
   const safeAreaInsets = useSafeAreaInsets();
-  const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -44,13 +43,13 @@ function ClassicTabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary[500],
-        tabBarInactiveTintColor: Colors.neutral[400],
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.iconDefault,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : Colors.white,
-          borderTopWidth: isWeb ? 1 : 0,
-          borderTopColor: Colors.neutral[200],
+          backgroundColor: isIOS ? "transparent" : theme.tabBar,
+          borderTopWidth: 1,
+          borderTopColor: theme.tabBarBorder,
           elevation: 0,
           paddingBottom: safeAreaInsets.bottom,
           ...(isWeb ? { height: 84 } : {}),
@@ -58,13 +57,18 @@ function ClassicTabLayout() {
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
-              intensity={100}
-              tint="light"
+              intensity={80}
+              tint={theme.dark ? "dark" : "light"}
               style={StyleSheet.absoluteFill}
             />
           ) : isWeb ? (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: Colors.white }]} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.tabBar }]} />
           ) : null,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontFamily: "Inter_500Medium",
+          marginTop: 2,
+        },
       }}
     >
       <Tabs.Screen
@@ -73,9 +77,9 @@ function ClassicTabLayout() {
           title: "Home",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="house" tintColor={color} size={24} />
+              <SymbolView name="house" tintColor={color} size={22} />
             ) : (
-              <Feather name="home" size={22} color={color} />
+              <Feather name="home" size={21} color={color} />
             ),
         }}
       />
@@ -85,9 +89,9 @@ function ClassicTabLayout() {
           title: "Resume",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="doc.text" tintColor={color} size={24} />
+              <SymbolView name="doc.text" tintColor={color} size={22} />
             ) : (
-              <Feather name="file-text" size={22} color={color} />
+              <Feather name="file-text" size={21} color={color} />
             ),
         }}
       />
@@ -97,9 +101,9 @@ function ClassicTabLayout() {
           title: "Progress",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="chart.bar" tintColor={color} size={24} />
+              <SymbolView name="chart.bar" tintColor={color} size={22} />
             ) : (
-              <Feather name="bar-chart-2" size={22} color={color} />
+              <Feather name="bar-chart-2" size={21} color={color} />
             ),
         }}
       />
@@ -109,9 +113,9 @@ function ClassicTabLayout() {
           title: "Profile",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="person" tintColor={color} size={24} />
+              <SymbolView name="person" tintColor={color} size={22} />
             ) : (
-              <Feather name="user" size={22} color={color} />
+              <Feather name="user" size={21} color={color} />
             ),
         }}
       />
@@ -120,8 +124,6 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
+  if (isLiquidGlassAvailable()) return <NativeTabLayout />;
   return <ClassicTabLayout />;
 }

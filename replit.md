@@ -4,6 +4,28 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+## Mobile App: Qlue (AI Interview Practice)
+
+Professional Expo React Native app at `artifacts/mobile` with full light/dark mode.
+
+### Design System
+- Theme hook: `hooks/useTheme.ts` — complete light/dark palette (never use `Colors` directly)
+- Font: Inter (400/500/600/700) via `@expo-google-fonts/inter`
+- Colors: Arctic Blue primary (#1A73C7 light / #3B82F6 dark)
+- Fully themed: all screens use `useTheme()` exclusively
+
+### Screens
+- Auth: `(auth)/login.tsx`, `(auth)/register.tsx`
+- Tabs: `(tabs)/index.tsx` (dashboard), `(tabs)/resume.tsx`, `(tabs)/sessions.tsx`, `(tabs)/profile.tsx`
+- Detail: `resume/[id].tsx`, `interview/session.tsx`
+
+### Key Libraries
+- `react-native-reanimated` for animations
+- `expo-linear-gradient` for gradient backgrounds
+- `expo-haptics` for haptic feedback
+- `@expo/vector-icons` (Feather) for icons
+- `expo-blur` for tab bar blur (iOS)
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces

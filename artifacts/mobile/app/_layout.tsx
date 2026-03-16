@@ -8,15 +8,17 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
+import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { ResumeProvider } from "@/context/ResumeContext";
 import { InterviewProvider } from "@/context/InterviewContext";
+import { ResumeProvider } from "@/context/ResumeContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -24,6 +26,7 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const { user, isLoading } = useAuth();
+  const scheme = useColorScheme();
 
   useEffect(() => {
     if (!isLoading) {
@@ -36,12 +39,15 @@ function RootLayoutNav() {
   }, [user, isLoading]);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="resume/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="interview/session" options={{ headerShown: false }} />
-    </Stack>
+    <>
+      <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+      <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="resume/[id]" options={{ headerShown: false, animation: "slide_from_right" }} />
+        <Stack.Screen name="interview/session" options={{ headerShown: false, animation: "slide_from_bottom" }} />
+      </Stack>
+    </>
   );
 }
 
