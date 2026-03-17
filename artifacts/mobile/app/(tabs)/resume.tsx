@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -22,93 +23,98 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Resume, ResumeStatus, useResumes } from "@/context/ResumeContext";
 import { useTheme } from "@/hooks/useTheme";
 
-const STATUS_CONFIG: Record<ResumeStatus, { label: string; icon: string }> = {
-  parsed:  { label: "Parsed",    icon: "check-circle" },
-  parsing: { label: "Parsing",   icon: "loader" },
-  failed:  { label: "Failed",    icon: "x-circle" },
-  pending: { label: "Pending",   icon: "clock" },
-};
+const FILE_NAMES = ["software_engineer", "product_manager", "data_analyst", "frontend_dev", "ux_designer"];
 
 function ResumeCard({ resume, onDelete }: { resume: Resume; onDelete: () => void }) {
   const theme = useTheme();
   const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const cfg = STATUS_CONFIG[resume.status];
+  const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
-  const statusColor = {
-    parsed: theme.success,
-    parsing: theme.warning,
-    failed: theme.error,
-    pending: theme.primary,
-  }[resume.status];
+  const isParsed = resume.status === "parsed";
+  const isParsing = resume.status === "parsing";
+  const isFailed = resume.status === "failed";
 
-  const statusBg = {
-    parsed: theme.successMuted,
-    parsing: theme.warningMuted,
-    failed: theme.errorMuted,
-    pending: theme.primaryMuted,
-  }[resume.status];
+  const headerColor = resume.format === "pdf" ? "#EF4444" : "#3B82F6";
 
   return (
-    <Animated.View style={animStyle}>
+    <Animated.View style={[anim, styles.cardOuter]}>
       <Pressable
         onPressIn={() => { scale.value = withSpring(0.97, { damping: 20 }); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
         onPressOut={() => { scale.value = withSpring(1, { damping: 20 }); }}
         onPress={() => router.push({ pathname: "/resume/[id]", params: { id: resume.id } })}
         style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
       >
-        {/* Top Row */}
-        <View style={styles.cardTop}>
-          <View style={[styles.fileIcon, { backgroundColor: theme.moduleResumeLight }]}>
-            <Feather name="file-text" size={20} color={theme.moduleResume} />
+        {/* Header strip */}
+        <LinearGradient
+          colors={[headerColor, headerColor + "BB"]}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={styles.cardHeader}
+        >
+          <View style={styles.cardHeaderLeft}>
+            <Feather name="file-text" size={18} color="rgba(255,255,255,0.9)" />
+            <View style={styles.cardHeaderLabels}>
+              <Text style={styles.cardFormat}>{resume.format.toUpperCase()}</Text>
+              <Text style={styles.cardSize}>{resume.fileSize}</Text>
+            </View>
           </View>
-          <View style={styles.fileInfo}>
-            <Text style={[styles.fileName, { color: theme.text }]} numberOfLines={1}>{resume.filename}</Text>
-            <Text style={[styles.fileDate, { color: theme.textTertiary }]}>Uploaded {resume.uploadDate}</Text>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
-            {resume.status === "parsing"
-              ? <ActivityIndicator size="small" color={statusColor} style={{ marginRight: 4 }} />
-              : <Feather name={cfg.icon as any} size={12} color={statusColor} style={{ marginRight: 4 }} />}
-            <Text style={[styles.statusText, { color: statusColor }]}>{cfg.label}</Text>
-          </View>
-        </View>
-
-        {/* Meta */}
-        <View style={styles.metaRow}>
-          <View style={[styles.metaChip, { backgroundColor: theme.bgSecondary }]}>
-            <Feather name="hard-drive" size={10} color={theme.textTertiary} />
-            <Text style={[styles.metaText, { color: theme.textTertiary }]}>{resume.fileSize}</Text>
-          </View>
-          <View style={[styles.metaChip, { backgroundColor: theme.bgSecondary }]}>
-            <Feather name="file" size={10} color={theme.textTertiary} />
-            <Text style={[styles.metaText, { color: theme.textTertiary }]}>{resume.format.toUpperCase()}</Text>
-          </View>
-          {resume.skills.length > 0 && (
-            <View style={[styles.metaChip, { backgroundColor: theme.moduleResumeLight }]}>
-              <Feather name="tag" size={10} color={theme.moduleResume} />
-              <Text style={[styles.metaText, { color: theme.moduleResume }]}>{resume.skills.length} skills</Text>
+          {/* Status badge */}
+          {isParsed && (
+            <View style={styles.statusBadge}>
+              <Feather name="check-circle" size={12} color="#fff" />
+              <Text style={styles.statusBadgeText}>Ready</Text>
             </View>
           )}
+          {isParsing && (
+            <View style={[styles.statusBadge, { backgroundColor: "rgba(245,158,11,0.25)" }]}>
+              <ActivityIndicator size="small" color="#fff" style={{ transform: [{ scale: 0.65 }] }} />
+              <Text style={styles.statusBadgeText}>Parsing</Text>
+            </View>
+          )}
+          {isFailed && (
+            <View style={[styles.statusBadge, { backgroundColor: "rgba(239,68,68,0.25)" }]}>
+              <Feather name="x-circle" size={12} color="#fff" />
+              <Text style={styles.statusBadgeText}>Failed</Text>
+            </View>
+          )}
+        </LinearGradient>
+
+        {/* Body */}
+        <View style={styles.cardBody}>
+          <View style={styles.cardBodyLeft}>
+            <Text style={[styles.fileName, { color: theme.text }]} numberOfLines={1}>{resume.filename}</Text>
+            <Text style={[styles.fileDate, { color: theme.textTertiary }]}>Uploaded {resume.uploadDate}</Text>
+            {isParsed && resume.skills.length > 0 && (
+              <View style={styles.skillsRow}>
+                {resume.skills.slice(0, 3).map((sk) => (
+                  <View key={sk} style={[styles.skillChip, { backgroundColor: theme.primaryMuted }]}>
+                    <Text style={[styles.skillText, { color: theme.primary }]}>{sk}</Text>
+                  </View>
+                ))}
+                {resume.skills.length > 3 && (
+                  <View style={[styles.skillChip, { backgroundColor: theme.bgSecondary }]}>
+                    <Text style={[styles.skillText, { color: theme.textTertiary }]}>+{resume.skills.length - 3}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Actions */}
-        <View style={styles.actions}>
-          {resume.status === "parsed" && (
+        <View style={[styles.cardActions, { borderTopColor: theme.borderSubtle }]}>
+          {isParsed ? (
             <Pressable
               style={({ pressed }) => [styles.startBtn, { backgroundColor: theme.moduleResume, opacity: pressed ? 0.85 : 1 }]}
-              onPress={(e) => {
-                e.stopPropagation();
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                router.push("/interview/session");
-              }}
+              onPress={(e) => { e.stopPropagation(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/interview/session"); }}
             >
               <Feather name="mic" size={14} color="#fff" />
               <Text style={styles.startBtnText}>Start Interview</Text>
             </Pressable>
+          ) : (
+            <View style={{ flex: 1 }} />
           )}
           <Pressable
-            style={({ pressed }) => [styles.deleteBtn, { backgroundColor: theme.errorMuted, opacity: pressed ? 0.8 : 1 }]}
+            style={({ pressed }) => [styles.deleteBtn, { backgroundColor: theme.errorMuted, opacity: pressed ? 0.75 : 1 }]}
             onPress={(e) => { e.stopPropagation(); onDelete(); }}
           >
             <Feather name="trash-2" size={15} color={theme.error} />
@@ -118,8 +124,6 @@ function ResumeCard({ resume, onDelete }: { resume: Resume; onDelete: () => void
     </Animated.View>
   );
 }
-
-const SAMPLE_FILES = ["software_engineer", "product_manager", "data_analyst", "frontend_developer", "ux_designer"];
 
 export default function ResumeScreen() {
   const insets = useSafeAreaInsets();
@@ -131,14 +135,14 @@ export default function ResumeScreen() {
   const handleUpload = async () => {
     setUploading(true);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const name = SAMPLE_FILES[Math.floor(Math.random() * SAMPLE_FILES.length)];
+    const name = FILE_NAMES[Math.floor(Math.random() * FILE_NAMES.length)];
     const fmt = Math.random() > 0.5 ? "pdf" : "docx" as "pdf" | "docx";
     addResume(`${name}.${fmt}`, fmt);
-    setUploading(false);
+    setTimeout(() => setUploading(false), 400);
   };
 
   const confirmDelete = (id: string, name: string) => {
-    Alert.alert("Delete Resume", `Remove "${name}"?`, [
+    Alert.alert("Remove Resume", `Delete "${name}"?`, [
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: "destructive", onPress: () => deleteResume(id) },
     ]);
@@ -146,51 +150,66 @@ export default function ResumeScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
-      <View style={[styles.header, { paddingTop: insets.top + webTop + 16, backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        <View>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>My Resumes</Text>
-          <Text style={[styles.headerSub, { color: theme.textSecondary }]}>
-            {resumes.length === 0 ? "Upload your first resume" : `${resumes.length} file${resumes.length > 1 ? "s" : ""} uploaded`}
-          </Text>
+      {/* Header */}
+      <LinearGradient
+        colors={theme.dark ? ["#0A1628", "#0D1B38"] : ["#EBF4FF", "#F4F6FB"]}
+        style={[styles.header, { paddingTop: insets.top + webTop + 20 }]}
+      >
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Resumes</Text>
+            <Text style={[styles.headerSub, { color: theme.dark ? "rgba(255,255,255,0.4)" : theme.textSecondary }]}>
+              {resumes.length === 0 ? "No files yet" : `${resumes.length} file${resumes.length > 1 ? "s" : ""}`}
+            </Text>
+          </View>
+          <Pressable
+            style={({ pressed }) => [styles.uploadBtn, { opacity: pressed ? 0.85 : 1 }]}
+            onPress={handleUpload}
+            disabled={uploading}
+          >
+            <LinearGradient colors={["#2563EB", "#1D4ED8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.uploadBtnInner}>
+              {uploading
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <>
+                  <Feather name="upload" size={15} color="#fff" />
+                  <Text style={styles.uploadBtnText}>Upload</Text>
+                </>}
+            </LinearGradient>
+          </Pressable>
         </View>
-        <Pressable
-          style={({ pressed }) => [styles.uploadBtn, { backgroundColor: theme.moduleResume, opacity: pressed ? 0.85 : 1 }, uploading && { backgroundColor: theme.border }]}
-          onPress={handleUpload}
-          disabled={uploading}
-        >
-          {uploading
-            ? <ActivityIndicator color="#fff" size="small" />
-            : <>
-              <Feather name="upload" size={15} color="#fff" />
-              <Text style={styles.uploadBtnText}>Upload</Text>
-            </>}
-        </Pressable>
-      </View>
+      </LinearGradient>
 
       <FlatList
         data={resumes}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(r) => r.id}
         renderItem={({ item }) => (
           <ResumeCard resume={item} onDelete={() => confirmDelete(item.id, item.filename)} />
         )}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 100 }]}
-        scrollEnabled={!!resumes.length}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <View style={[styles.emptyIcon, { backgroundColor: theme.moduleResumeLight }]}>
-              <Feather name="file-plus" size={36} color={theme.moduleResume} />
+            <View style={[styles.emptyIllustration, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <View style={[styles.emptyDocLine, { backgroundColor: theme.border }]} />
+              <View style={[styles.emptyDocLine, { backgroundColor: theme.border, width: "60%" }]} />
+              <View style={[styles.emptyDocLine, { backgroundColor: theme.border, width: "80%" }]} />
+              <View style={[styles.emptyDocLine, { backgroundColor: theme.border, width: "50%" }]} />
+              <View style={[styles.emptyDocIcon, { backgroundColor: theme.primaryMuted }]}>
+                <Feather name="upload-cloud" size={26} color={theme.primary} />
+              </View>
             </View>
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No resumes yet</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No resumes uploaded</Text>
             <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-              Upload your resume to enable resume-based interview practice
+              Upload your resume to unlock personalized interview questions tailored to your skills
             </Text>
             <Pressable
-              style={({ pressed }) => [styles.emptyBtn, { backgroundColor: theme.moduleResume, opacity: pressed ? 0.85 : 1 }]}
+              style={({ pressed }) => [styles.emptyBtnOuter, { opacity: pressed ? 0.85 : 1 }]}
               onPress={handleUpload}
             >
-              <Feather name="upload" size={16} color="#fff" />
-              <Text style={styles.emptyBtnText}>Upload Resume</Text>
+              <LinearGradient colors={["#2563EB", "#1D4ED8"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.emptyBtn}>
+                <Feather name="upload" size={17} color="#fff" />
+                <Text style={styles.emptyBtnText}>Upload Resume</Text>
+              </LinearGradient>
             </Pressable>
           </View>
         }
@@ -201,60 +220,53 @@ export default function ResumeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: {
-    flexDirection: "row", alignItems: "flex-end",
-    justifyContent: "space-between",
-    paddingHorizontal: 16, paddingBottom: 14,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontSize: 26, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
-  headerSub: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 2 },
-  uploadBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12,
-  },
+  header: { paddingHorizontal: 20, paddingBottom: 20 },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
+  headerTitle: { fontSize: 30, fontFamily: "Inter_700Bold", letterSpacing: -0.6 },
+  headerSub: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 3 },
+  uploadBtn: { borderRadius: 13, overflow: "hidden" },
+  uploadBtnInner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 10 },
   uploadBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
-  list: { padding: 14, gap: 12 },
-  card: {
-    borderRadius: 18, padding: 16, borderWidth: 1, gap: 12,
+  list: { padding: 14, gap: 14 },
+  cardOuter: {
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 10, elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1, shadowRadius: 16, elevation: 4,
   },
-  cardTop: { flexDirection: "row", alignItems: "center", gap: 12 },
-  fileIcon: { width: 46, height: 46, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  fileInfo: { flex: 1 },
-  fileName: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  fileDate: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  card: { borderRadius: 20, borderWidth: 1, overflow: "hidden" },
+  cardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 },
+  cardHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  cardHeaderLabels: { gap: 1 },
+  cardFormat: { fontSize: 13, fontFamily: "Inter_700Bold", color: "#fff" },
+  cardSize: { fontSize: 11, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.7)" },
   statusBadge: {
-    flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+    flexDirection: "row", alignItems: "center", gap: 5,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
   },
-  statusText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
-  metaRow: { flexDirection: "row", gap: 6 },
-  metaChip: {
-    flexDirection: "row", alignItems: "center", gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+  statusBadgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  cardBody: { padding: 16, gap: 8 },
+  cardBodyLeft: { gap: 4 },
+  fileName: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  fileDate: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  skillsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
+  skillChip: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
+  skillText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  cardActions: { flexDirection: "row", alignItems: "center", gap: 10, borderTopWidth: 1, padding: 12 },
+  startBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, height: 38, borderRadius: 11 },
+  startBtnText: { fontSize: 13, fontFamily: "Inter_700Bold", color: "#fff" },
+  deleteBtn: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  empty: { paddingTop: 60, alignItems: "center", gap: 14, paddingHorizontal: 32 },
+  emptyIllustration: {
+    width: 140, height: 160, borderRadius: 20, borderWidth: 1,
+    padding: 24, gap: 10, alignItems: "center", justifyContent: "center",
+    position: "relative", marginBottom: 8,
   },
-  metaText: { fontSize: 11, fontFamily: "Inter_500Medium" },
-  actions: { flexDirection: "row", gap: 8 },
-  startBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center",
-    justifyContent: "center", gap: 6,
-    height: 38, borderRadius: 10,
-  },
-  startBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#fff" },
-  deleteBtn: {
-    width: 38, height: 38, borderRadius: 10,
-    alignItems: "center", justifyContent: "center",
-  },
-  empty: { paddingTop: 80, alignItems: "center", gap: 12, paddingHorizontal: 32 },
-  emptyIcon: { width: 88, height: 88, borderRadius: 26, alignItems: "center", justifyContent: "center", marginBottom: 8 },
-  emptyTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
+  emptyDocLine: { height: 8, width: "100%", borderRadius: 4 },
+  emptyDocIcon: { position: "absolute", width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  emptyTitle: { fontSize: 20, fontFamily: "Inter_700Bold", textAlign: "center" },
   emptyText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
-  emptyBtn: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    paddingHorizontal: 24, paddingVertical: 13, borderRadius: 13, marginTop: 8,
-  },
-  emptyBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  emptyBtnOuter: { borderRadius: 14, overflow: "hidden", marginTop: 4 },
+  emptyBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 28, paddingVertical: 14 },
+  emptyBtnText: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#fff" },
 });
