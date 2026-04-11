@@ -1,6 +1,5 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -8,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,73 +17,40 @@ import {
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { QlueLogo } from "@/components/QlueLogo";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
+import { GlassCard } from "@/components/GlassCard";
 
 function InputField({
-  icon,
-  label,
-  placeholder,
-  value,
-  onChangeText,
-  secure,
-  keyboard,
-  right,
+  label, placeholder, value, onChangeText, secure, keyboard, right,
 }: {
-  icon: string;
-  label: string;
-  placeholder: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  secure?: boolean;
-  keyboard?: any;
-  right?: React.ReactNode;
+  icon?: string; label: string; placeholder: string; value: string;
+  onChangeText: (t: string) => void; secure?: boolean;
+  keyboard?: any; right?: React.ReactNode;
 }) {
   const theme = useTheme();
-  const [focused, setFocused] = useState(false);
-
   return (
     <View style={styles.fieldWrap}>
-      <Text style={[styles.fieldLabel, { color: theme.dark ? "rgba(255,255,255,0.55)" : theme.textSecondary }]}>
+      <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>
         {label}
       </Text>
-      <View
-        style={[
-          styles.inputBox,
-          {
-            backgroundColor: theme.dark ? "rgba(255,255,255,0.06)" : theme.inputBg,
-            borderColor: focused
-              ? theme.primary
-              : theme.dark ? "rgba(255,255,255,0.1)" : theme.border,
-          },
-        ]}
-      >
-        <Feather
-          name={icon as any}
-          size={17}
-          color={focused ? theme.primary : theme.dark ? "rgba(255,255,255,0.35)" : theme.iconDefault}
-          style={styles.inputIcon}
-        />
-        <TextInput
-          style={[styles.inputText, { color: theme.text }]}
-          placeholder={placeholder}
-          placeholderTextColor={theme.dark ? "rgba(255,255,255,0.2)" : theme.placeholder}
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={secure}
-          keyboardType={keyboard}
-          autoCapitalize="none"
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-        />
-        {right}
-      </View>
+      <GlassCard borderRadius={30} padding={{ left: 20, right: 10 }}>
+        <View style={styles.inputBox}>
+          <TextInput
+            style={[styles.inputText, { color: theme.text }]}
+            placeholder={placeholder}
+            placeholderTextColor={theme.placeholder}
+            value={value} onChangeText={onChangeText}
+            secureTextEntry={secure} keyboardType={keyboard}
+            autoCapitalize="none"
+          />
+          {right}
+        </View>
+      </GlassCard>
     </View>
   );
 }
@@ -97,7 +64,6 @@ export default function LoginScreen() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const webTop = Platform.OS === "web" ? 67 : 0;
 
   const btnScale = useSharedValue(1);
   const btnAnimStyle = useAnimatedStyle(() => ({
@@ -123,181 +89,136 @@ export default function LoginScreen() {
     }
   };
 
-  const bg = theme.dark
-    ? ["#060C1A", "#0D1B38", "#091427"] as const
-    : ["#EBF4FF", "#F4F6FB", "#EEF1F8"] as const;
+  const bgColor = theme.dark ? theme.bgSecondary : "#F4F7FC";
 
   return (
-    <LinearGradient colors={bg} style={styles.root} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView
-          contentContainerStyle={[
-            styles.scroll,
-            { paddingTop: insets.top + webTop + 32, paddingBottom: insets.bottom + 48 },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Brand */}
-          <View style={styles.brand}>
-            <QlueLogo size={80} />
-            <View style={styles.brandText}>
-              <Text style={[styles.brandName, { color: theme.text }]}>Qlue</Text>
-              <View style={[styles.brandBadge, { backgroundColor: theme.primary + "22" }]}>
-                <View style={[styles.brandDot, { backgroundColor: theme.primary }]} />
-                <Text style={[styles.brandBadgeText, { color: theme.primary }]}>AI Interview Coach</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Heading */}
-          <View style={styles.heading}>
-            <Text style={[styles.headingTitle, { color: theme.text }]}>Welcome back</Text>
-            <Text style={[styles.headingSub, { color: theme.dark ? "rgba(255,255,255,0.45)" : theme.textSecondary }]}>
-              Sign in to continue practicing
-            </Text>
-          </View>
-
-          {/* Card */}
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor: theme.dark ? "rgba(255,255,255,0.05)" : theme.card,
-                borderColor: theme.dark ? "rgba(255,255,255,0.08)" : theme.border,
-              },
+    <View style={[styles.root, { backgroundColor: bgColor }]}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <ScrollView
+            contentContainerStyle={[
+              styles.scroll,
+              { paddingTop: 20, paddingBottom: insets.bottom + 48 },
             ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            {!!error && (
-              <View style={[styles.errorRow, { backgroundColor: theme.errorMuted }]}>
-                <Feather name="alert-circle" size={14} color={theme.error} />
-                <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text>
+            {/* Header / Brand */}
+            <View style={styles.brand}>
+              <Text style={[styles.headerTitle, { color: theme.primary }]}>Qlue</Text>
+            </View>
+
+            <GlassCard
+              borderRadius={40}
+              padding={0}
+              margin={{ vertical: 10 }}
+            >
+              <View style={styles.cardContent}>
+                <Text style={[styles.title, { color: theme.text }]}>Welcome back</Text>
+                <Text style={[styles.headingSub, { color: theme.textSecondary }]}>
+                  Sign in to continue practicing
+                </Text>
+
+                {!!error && (
+                  <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text>
+                )}
+
+                <View style={styles.form}>
+                  <InputField
+                    label="Email"
+                    placeholder="joedoe75@gmail.com"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboard="email-address"
+                  />
+                  <InputField
+                    label="Password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChangeText={setPassword}
+                    secure={!showPw}
+                    right={
+                      <Pressable onPress={() => setShowPw(!showPw)} style={styles.eyeBtn} hitSlop={8}>
+                        <Feather name={showPw ? "eye" : "eye-off"} size={18} color={theme.placeholder} />
+                      </Pressable>
+                    }
+                  />
+
+                  <Pressable style={styles.forgotBtn} hitSlop={6}>
+                    <Text style={[styles.forgotText, { color: theme.primary }]}>Forgot password?</Text>
+                  </Pressable>
+
+                  <Animated.View style={btnAnimStyle}>
+                    <GlassCard
+                      onTap={handleLogin}
+                      tintColor={theme.primary}
+                      fillAlpha={theme.dark ? 0.4 : 0.8}
+                      borderRadius={30}
+                      padding={0}
+                    >
+                      <View style={styles.primaryBtn}>
+                        {loading
+                          ? <ActivityIndicator color="#fff" />
+                          : <Text style={styles.primaryBtnText}>Sign In</Text>}
+                      </View>
+                    </GlassCard>
+                  </Animated.View>
+
+                  <Text style={[styles.orText, { color: theme.placeholder }]}>Or Sign in with</Text>
+
+                  <GlassCard
+                    borderRadius={30}
+                    padding={0}
+                    onTap={() => {}}
+                  >
+                    <View style={styles.googleBtn}>
+                      <Feather name="layers" size={20} color={theme.primary} />
+                      <Text style={[styles.googleBtnText, { color: theme.text }]}>Sign in with Google</Text>
+                    </View>
+                  </GlassCard>
+                </View>
               </View>
-            )}
+            </GlassCard>
 
-            <InputField
-              icon="mail"
-              label="Email address"
-              placeholder="you@example.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboard="email-address"
-            />
-            <InputField
-              icon="lock"
-              label="Password"
-              placeholder="••••••••"
-              value={password}
-              onChangeText={setPassword}
-              secure={!showPw}
-              right={
-                <Pressable onPress={() => setShowPw(!showPw)} style={styles.eyeBtn} hitSlop={8}>
-                  <Feather name={showPw ? "eye-off" : "eye"} size={17} color={theme.dark ? "rgba(255,255,255,0.3)" : theme.iconDefault} />
-                </Pressable>
-              }
-            />
-
-            <Pressable style={styles.forgotBtn} hitSlop={6}>
-              <Text style={[styles.forgotText, { color: theme.primary }]}>Forgot password?</Text>
+            <Pressable
+              style={styles.secondaryBtn}
+              onPress={() => router.push("/(auth)/register")}
+            >
+              <Text style={[styles.secondaryBtnText, { color: theme.textSecondary }]}>
+                Don't have an account?{" "}
+                <Text style={{ color: theme.primary, fontWeight: '700' }}>Create one</Text>
+              </Text>
             </Pressable>
-
-            <Animated.View style={btnAnimStyle}>
-              <Pressable
-                onPressIn={() => { btnScale.value = withSpring(0.97, { damping: 20 }); }}
-                onPressOut={() => { btnScale.value = withSpring(1, { damping: 20 }); }}
-                onPress={handleLogin}
-                disabled={loading}
-                style={styles.primaryBtnOuter}
-              >
-                <LinearGradient
-                  colors={["#2563EB", "#1D4ED8"]}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                  style={styles.primaryBtn}
-                >
-                  {loading
-                    ? <ActivityIndicator color="#fff" />
-                    : <>
-                      <Text style={styles.primaryBtnText}>Sign In</Text>
-                      <Feather name="arrow-right" size={17} color="#fff" />
-                    </>}
-                </LinearGradient>
-              </Pressable>
-            </Animated.View>
-          </View>
-
-          {/* Divider */}
-          <View style={styles.dividerRow}>
-            <View style={[styles.dividerLine, { backgroundColor: theme.dark ? "rgba(255,255,255,0.08)" : theme.border }]} />
-            <Text style={[styles.dividerText, { color: theme.dark ? "rgba(255,255,255,0.25)" : theme.textTertiary }]}>or</Text>
-            <View style={[styles.dividerLine, { backgroundColor: theme.dark ? "rgba(255,255,255,0.08)" : theme.border }]} />
-          </View>
-
-          <Pressable
-            style={[styles.secondaryBtn, { borderColor: theme.dark ? "rgba(255,255,255,0.12)" : theme.border, backgroundColor: theme.dark ? "rgba(255,255,255,0.04)" : theme.card }]}
-            onPress={() => router.push("/(auth)/register")}
-          >
-            <Text style={[styles.secondaryBtnText, { color: theme.dark ? "rgba(255,255,255,0.7)" : theme.textSecondary }]}>
-              Don't have an account?{" "}
-            </Text>
-            <Text style={[styles.secondaryBtnLink, { color: theme.primary }]}>Create one</Text>
-          </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  scroll: { paddingHorizontal: 24, flexGrow: 1 },
-  brand: { flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 40 },
-  brandText: { gap: 8 },
-  brandName: { fontSize: 32, fontFamily: "Inter_700Bold", letterSpacing: -0.8 },
-  brandBadge: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
-  },
-  brandDot: { width: 6, height: 6, borderRadius: 3 },
-  brandBadgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
-  heading: { marginBottom: 28 },
-  headingTitle: { fontSize: 30, fontFamily: "Inter_700Bold", letterSpacing: -0.6 },
-  headingSub: { fontSize: 15, fontFamily: "Inter_400Regular", marginTop: 6 },
-  card: {
-    borderRadius: 24, borderWidth: 1, padding: 20, gap: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15, shadowRadius: 24, elevation: 8,
-    marginBottom: 16,
-  },
-  errorRow: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    borderRadius: 10, padding: 12,
-  },
-  errorText: { fontSize: 13, fontFamily: "Inter_400Regular", flex: 1 },
+  scroll: { paddingHorizontal: 20, flexGrow: 1 },
+  brand: { alignItems: "center", marginBottom: 30 },
+  headerTitle: { fontSize: 26, fontWeight: '700', letterSpacing: -0.5 },
+  cardContent: { padding: 24, paddingBottom: 40 },
+  title: { fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 8, letterSpacing: -0.5 },
+  headingSub: { fontSize: 15, textAlign: 'center', marginBottom: 36 },
+  errorText: { color: 'red', fontSize: 13, textAlign: 'center', marginBottom: 16 },
+  form: { gap: 20 },
   fieldWrap: { gap: 8 },
-  fieldLabel: { fontSize: 12, fontFamily: "Inter_600SemiBold", letterSpacing: 0.3 },
-  inputBox: {
-    flexDirection: "row", alignItems: "center",
-    borderRadius: 14, borderWidth: 1.5, height: 52,
-  },
-  inputIcon: { paddingLeft: 14, paddingRight: 10 },
-  inputText: { flex: 1, height: "100%", fontSize: 15, fontFamily: "Inter_400Regular", paddingRight: 14 },
-  eyeBtn: { padding: 14 },
+  fieldLabel: { fontSize: 13, fontWeight: '600' },
+  inputBox: { flexDirection: "row", alignItems: "center", height: 56 },
+  inputText: { flex: 1, height: "100%", fontSize: 15 },
+  eyeBtn: { padding: 10 },
   forgotBtn: { alignSelf: "flex-end", marginTop: -6 },
-  forgotText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  primaryBtnOuter: { borderRadius: 14, overflow: "hidden" },
-  primaryBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, height: 52, borderRadius: 14,
-  },
-  primaryBtnText: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff" },
-  dividerRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
-  dividerLine: { flex: 1, height: 1 },
-  dividerText: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  secondaryBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    height: 52, borderRadius: 14, borderWidth: 1.5,
-  },
-  secondaryBtnText: { fontSize: 15, fontFamily: "Inter_400Regular" },
-  secondaryBtnLink: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  forgotText: { fontSize: 13, fontWeight: "600" },
+  primaryBtn: { height: 56, alignItems: "center", justifyContent: "center" },
+  primaryBtnText: { fontSize: 16, fontWeight: "600", color: "#fff" },
+  orText: { textAlign: 'center', fontSize: 13, fontWeight: '500', marginVertical: 10 },
+  googleBtn: { height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  googleBtnText: { fontSize: 15, fontWeight: '600' },
+  secondaryBtn: { marginTop: 20, alignItems: "center" },
+  secondaryBtnText: { fontSize: 15 },
 });
+
