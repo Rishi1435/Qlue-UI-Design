@@ -5,7 +5,7 @@ import 'core/theme.dart';
 import 'context/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
-import 'screens/auth/onboarding_screen.dart';
+
 import 'screens/tabs/tabs_screen.dart';
 import 'screens/interview/interview_session_screen.dart';
 
@@ -37,9 +37,8 @@ class MyApp extends StatelessWidget {
                 textTheme: GoogleFonts.interTextTheme(AppTheme.darkTheme.textTheme),
               ),
               themeMode: themeNotifier.themeMode,
-              initialRoute: '/onboarding',
+              initialRoute: '/login',
               routes: {
-                '/onboarding': (context) => const ExactOnboardingScreen(),
                 '/login': (context) => const ExactLoginScreen(),
                 '/register': (context) => const ExactRegisterScreen(),
                 '/tabs': (context) => const TabsScreen(),

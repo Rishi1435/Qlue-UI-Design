@@ -88,7 +88,7 @@ class ParticleSpherePainter extends CustomPainter {
       final baseAlpha = 0.4 + brightness * 0.6;
       final alpha = (isSpeaking ? min(1.0, baseAlpha * 1.3) : baseAlpha).clamp(0.0, 1.0);
 
-      final paint = Paint()..color = Colors.white.withValues(alpha: alpha);
+      final paint = Paint()..color = Colors.white.withOpacity(alpha);
 
       canvas.drawCircle(Offset(finalX, finalY), particleSize, paint);
     }

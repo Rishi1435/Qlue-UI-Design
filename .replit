@@ -1,7 +1,12 @@
 modules = ["nodejs-24"]
+run = "pnpm run dev"
+entrypoint = "artifacts/mobile/app/_layout.tsx"
 
 [[artifacts]]
 id = "artifacts/api-server"
+
+[[artifacts]]
+id = "artifacts/mobile"
 
 [[artifacts]]
 id = "artifacts/mockup-sandbox"
@@ -15,7 +20,7 @@ args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
 
 [workflows]
-runButton = "Project"
+runButton = "Qlue App"
 
 [agent]
 stack = "PNPM_WORKSPACE"

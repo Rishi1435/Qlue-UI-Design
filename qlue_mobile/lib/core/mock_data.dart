@@ -72,7 +72,7 @@ class Resume {
   });
 }
 
-final List<Resume> mockResumes = [
+List<Resume> mockResumes = [
   Resume(
     id: "1",
     filename: "software_engineer_cv.pdf",

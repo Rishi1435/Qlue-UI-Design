@@ -96,7 +96,7 @@ class _PremiumFlipCardState extends State<PremiumFlipCard> with TickerProviderSt
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: shadowOpacity),
+                    color: Colors.black.withOpacity(shadowOpacity),
                     blurRadius: shadowBlur,
                     spreadRadius: shadowSpread,
                     offset: Offset(0, 4 + (sin(angle)*10)),

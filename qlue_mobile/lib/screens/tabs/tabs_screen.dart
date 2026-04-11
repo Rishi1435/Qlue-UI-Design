@@ -2,9 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 import '../../core/theme.dart';
-import 'home_screen.dart';
 import 'sessions_screen.dart';
 import 'profile_screen.dart';
+import 'ai_modules_screen.dart';
 import '../../components/glass_card.dart';
 
 class TabsScreen extends StatefulWidget {
@@ -18,8 +18,8 @@ class _TabsScreenState extends State<TabsScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = const [
-    HomeScreen(),
     SessionsScreen(),
+    AIModulesScreen(),
     ProfileScreen(),
   ];
 
@@ -35,25 +35,26 @@ class _TabsScreenState extends State<TabsScreen> {
             index: _currentIndex,
             children: _screens,
           ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: GlassCard(
-              margin: const EdgeInsets.only(bottom: 30, left: 24, right: 24),
-              borderRadius: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-              child: SizedBox(
-                height: 72,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildNavItem(0, FeatherIcons.home, "Home", t),
-                    _buildNavItem(1, FeatherIcons.barChart2, "Progress", t),
-                    _buildNavItem(2, FeatherIcons.user, "Profile", t),
-                  ],
+          if (MediaQuery.of(context).viewInsets.bottom == 0)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: GlassCard(
+                margin: const EdgeInsets.only(bottom: 30, left: 24, right: 24),
+                borderRadius: 40,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                child: SizedBox(
+                  height: 72,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildNavItem(0, FeatherIcons.home, "Home", t),
+                      _buildNavItem(1, FeatherIcons.zap, "Practice", t),
+                      _buildNavItem(2, FeatherIcons.user, "Profile", t),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

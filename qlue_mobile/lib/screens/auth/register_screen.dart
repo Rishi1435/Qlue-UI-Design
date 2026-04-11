@@ -23,9 +23,15 @@ class _ExactRegisterScreenState extends State<ExactRegisterScreen> {
   String _error = '';
 
   Future<void> _handleRegister() async {
-    if (_name.trim().isEmpty || _email.trim().isEmpty || _password.isEmpty) { setState(() => _error = "Please fill in all fields"); return; }
-    if (_password.length < 8) { setState(() => _error = "Password must be at least 8 characters"); return; }
-    if (!_agreed) { setState(() => _error = "Please agree to Terms"); return; }
+    if (_name.trim().isEmpty || _email.trim().isEmpty || _password.isEmpty) { 
+      setState(() => _error = "Please fill in all fields"); return; 
+    }
+    if (_password.length < 8) { 
+      setState(() => _error = "Password must be at least 8 characters"); return; 
+    }
+    if (!_agreed) { 
+      setState(() => _error = "Please agree to Terms"); return; 
+    }
     setState(() { _error = ''; _loading = true; });
     try {
       await Provider.of<AuthProvider>(context, listen: false).register(_name.trim(), _email.trim(), _password);
@@ -55,7 +61,6 @@ class _ExactRegisterScreenState extends State<ExactRegisterScreen> {
   Widget build(BuildContext context) {
     final t = AppThemeColors.of(context);
     
-    // EXACT colors for light mode to preserve pixel-perfect UI, mapped to dark mode equivalents
     final Color bgColor = t.isDark ? t.bgSecondary : const Color(0xFFF4F7FC);
     final Color primaryBlue = t.isDark ? t.primary : const Color(0xFF3B82F6);
     final Color textColor = t.text;
@@ -96,8 +101,8 @@ class _ExactRegisterScreenState extends State<ExactRegisterScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            
+            const SizedBox(height: 30),
+
             // The Floating Card
             Expanded(
               child: GlassCard(
@@ -110,7 +115,7 @@ class _ExactRegisterScreenState extends State<ExactRegisterScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Create an Account?',
+                        'Create an Account',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: textColor, letterSpacing: -0.5),
                       ),
@@ -129,25 +134,22 @@ class _ExactRegisterScreenState extends State<ExactRegisterScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: SizedBox(
                           height: 56,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextField(
-                              onChanged: (v) => _name = v,
-                              textCapitalization: TextCapitalization.words,
-                              style: TextStyle(fontSize: 15, color: textColor),
-                              decoration: InputDecoration(
-                                border: InputBorder.none,
-                                hintText: 'Johan orindo',
-                                hintStyle: TextStyle(fontSize: 15, color: placeholderColor, fontWeight: FontWeight.w400),
-                                isDense: true,
-                                contentPadding: EdgeInsets.zero,
-                              ),
+                          child: TextField(
+                            onChanged: (v) => _name = v,
+                            textCapitalization: TextCapitalization.words,
+                            style: TextStyle(fontSize: 15, color: textColor),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              hintText: 'Full Name',
+                              hintStyle: TextStyle(fontSize: 15, color: placeholderColor, fontWeight: FontWeight.w400),
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 20),
-
+                      
                       // Email Field
                       Text('Email', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: labelColor)),
                       const SizedBox(height: 8),
@@ -156,19 +158,16 @@ class _ExactRegisterScreenState extends State<ExactRegisterScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: SizedBox(
                           height: 56,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextField(
-                              onChanged: (v) => _email = v,
-                              keyboardType: TextInputType.emailAddress,
-                              style: TextStyle(fontSize: 15, color: textColor),
-                              decoration: InputDecoration(
-                                border: InputBorder.none,
-                                hintText: 'joedoe75@gmail.com',
-                                hintStyle: TextStyle(fontSize: 15, color: placeholderColor, fontWeight: FontWeight.w400),
-                                isDense: true,
-                                contentPadding: EdgeInsets.zero,
-                              ),
+                          child: TextField(
+                            onChanged: (v) => _email = v,
+                            keyboardType: TextInputType.emailAddress,
+                            style: TextStyle(fontSize: 15, color: textColor),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              hintText: 'joedoe75@gmail.com',
+                              hintStyle: TextStyle(fontSize: 15, color: placeholderColor, fontWeight: FontWeight.w400),
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
                             ),
                           ),
                         ),
@@ -207,40 +206,32 @@ class _ExactRegisterScreenState extends State<ExactRegisterScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      
+                      const SizedBox(height: 30),
+
                       // Terms Agreement
-                      GestureDetector(
-                        onTap: () => setState(() => _agreed = !_agreed),
-                        behavior: HitTestBehavior.opaque,
-                        child: Row(
-                          children: [
-                            GlassCard(
-                              padding: EdgeInsets.zero,
-                              borderRadius: 4,
-                              fillAlpha: _agreed ? (t.isDark ? 0.3 : 0.8) : 0.0,
-                              tintColor: _agreed ? primaryBlue : null,
-                              child: SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: _agreed ? Icon(Icons.check, size: 14, color: Colors.white) : null,
-                              ),
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Checkbox(
+                              value: _agreed,
+                              onChanged: (v) => setState(() => _agreed = v ?? false),
+                              activeColor: primaryBlue,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                             ),
-                            const SizedBox(width: 8),
-                            RichText(
-                              text: TextSpan(
-                                style: TextStyle(fontSize: 13, color: placeholderColor, fontWeight: FontWeight.w500),
-                                children: [
-                                  const TextSpan(text: 'I agree to the '),
-                                  TextSpan(text: 'Terms of Service', style: TextStyle(color: primaryBlue, fontWeight: FontWeight.w500)),
-                                ],
-                              ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'I agree to the Terms of Service and Privacy Policy',
+                              style: TextStyle(fontSize: 13, color: labelColor),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 32),
-                      
+                      const SizedBox(height: 30),
+
                       // Create Account Button
                       GlassCard(
                         onTap: _loading ? null : _handleRegister,
@@ -294,7 +285,8 @@ class _ExactRegisterScreenState extends State<ExactRegisterScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 30),         ],
+                      const SizedBox(height: 30),
+                    ],
                   ),
                 ),
               ),

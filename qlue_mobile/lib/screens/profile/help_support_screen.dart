@@ -110,7 +110,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: t.border),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.03), offset: const Offset(0, 2), blurRadius: 8),
+                          BoxShadow(color: Colors.black.withOpacity(0.03), offset: const Offset(0, 2), blurRadius: 8),
                         ],
                       ),
                       child: ExpansionTile(

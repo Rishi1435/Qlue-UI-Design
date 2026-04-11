@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'particle_sphere.dart';
+import '../feedback/feedback_report_screen.dart';
 
 const List<String> _questions = [
   "Tell me about yourself and your professional background.",
@@ -162,7 +163,10 @@ class _InterviewSessionScreenState extends State<InterviewSessionScreen> with Ti
   }
 
   void _endInterview() {
-    Navigator.of(context).pop();
+    Navigator.pushReplacement(
+      context, 
+      MaterialPageRoute(builder: (context) => const FeedbackReportScreen())
+    );
   }
 
   @override
@@ -186,11 +190,11 @@ class _InterviewSessionScreenState extends State<InterviewSessionScreen> with Ti
     
     Color auraColor = Colors.transparent;
     if (isAiSpeaking) {
-      auraColor = const Color(0xFF007AFF).withValues(alpha: 0.6); // Deep azure
+      auraColor = const Color(0xFF007AFF).withOpacity(0.6); // Deep azure
     } else if (isListening) {
-      auraColor = const Color(0xFFFF9500).withValues(alpha: 0.6); // Amber/Warning
+      auraColor = const Color(0xFFFF9500).withOpacity(0.6); // Amber/Warning
     } else if (phase == Phase.processing) {
-      auraColor = const Color(0xFF34C759).withValues(alpha: 0.4); // Green/Success
+      auraColor = const Color(0xFF34C759).withOpacity(0.4); // Green/Success
     }
 
     String topText = _questions[currentQ];
@@ -216,7 +220,7 @@ class _InterviewSessionScreenState extends State<InterviewSessionScreen> with Ti
                    Container(
                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                      decoration: BoxDecoration(
-                       color: Colors.white.withValues(alpha: 0.1),
+                       color: Colors.white.withOpacity(0.1),
                        borderRadius: BorderRadius.circular(12),
                      ),
                      child: Text(
@@ -344,7 +348,7 @@ class _InterviewSessionScreenState extends State<InterviewSessionScreen> with Ti
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: (phase == Phase.listening ? const Color(0xFFFF453A) : const Color(0xFF007AFF)).withValues(alpha: 0.4),
+                          color: (phase == Phase.listening ? const Color(0xFFFF453A) : const Color(0xFF007AFF)).withOpacity(0.4),
                           offset: const Offset(0, 8),
                           blurRadius: 20,
                         ),

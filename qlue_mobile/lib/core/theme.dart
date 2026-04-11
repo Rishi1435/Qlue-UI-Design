@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/widgets.dart';
 
 /// Static color palette – these never change regardless of theme.
 class AppColors {
@@ -139,7 +140,7 @@ class AppThemeColors {
     textInverse: Color(0xFFFFFFFF),
     primary: Color(0xFF007AFF), // Standard pure iOS blue
     primaryLight: Color(0xFFE5F0FF),
-    primaryMuted: Color(0x19007AFF), 
+    primaryMuted: Color(0x19007AFF),
     primaryDark: Color(0xFF0056B3),
     secondary: Color(0xFF34C759),
     secondaryMuted: Color(0x1934C759),
@@ -204,7 +205,9 @@ class AppThemeColors {
 
   /// Get theme colors from the nearest ancestor context.
   static AppThemeColors of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<AppThemeColorsProvider>()!.colors;
+    return context
+        .dependOnInheritedWidgetOfExactType<AppThemeColorsProvider>()!
+        .colors;
   }
 }
 
@@ -227,11 +230,18 @@ class AppThemeColorsProvider extends InheritedWidget {
 /// Theme notifier that toggles dark/light mode.
 class ThemeNotifier extends ChangeNotifier {
   bool _isDark = false;
+
+  ThemeNotifier() {
+    _isDark =
+        WidgetsBinding.instance.window.platformBrightness == Brightness.dark;
+  }
+
   bool get isDark => _isDark;
 
   ThemeMode get themeMode => _isDark ? ThemeMode.dark : ThemeMode.light;
 
-  AppThemeColors get colors => _isDark ? AppThemeColors.dark : AppThemeColors.light;
+  AppThemeColors get colors =>
+      _isDark ? AppThemeColors.dark : AppThemeColors.light;
 
   void toggle() {
     _isDark = !_isDark;

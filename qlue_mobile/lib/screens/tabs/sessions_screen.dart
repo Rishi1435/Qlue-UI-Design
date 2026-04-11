@@ -6,10 +6,48 @@ import '../../core/theme.dart';
 import '../../core/mock_data.dart';
 import '../../components/staggered_fade_in.dart';
 import '../../components/premium_flip_card.dart';
-import '../interview/session_feedback_screen.dart';
+import '../feedback/feedback_report_screen.dart';
 import 'tabs_screen.dart';
 import '../../components/glass_card.dart';
 import '../../components/spider_chart.dart';
+import '../resume/resume_upload_screen.dart';
+
+class GlassHeaderPane extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry margin;
+  
+  const GlassHeaderPane({super.key, required this.child, required this.padding, this.margin = EdgeInsets.zero});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppThemeColors.of(context);
+    final Color tint = t.isDark ? Colors.white : Colors.black;
+    final double fillAlpha = t.isDark ? 0.05 : 0.02;
+    final double borderAlpha = t.isDark ? 0.12 : 0.06;
+
+    return Padding(
+      padding: margin,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(36), bottomRight: Radius.circular(36)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              color: tint.withOpacity(fillAlpha),
+              borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(36), bottomRight: Radius.circular(36)),
+              border: Border(
+                bottom: BorderSide(color: tint.withOpacity(borderAlpha), width: 1.0),
+              ),
+            ),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class ScoreRing extends StatelessWidget {
   final int score;
@@ -34,7 +72,7 @@ class ScoreRing extends StatelessWidget {
                 width: size, height: size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: t.isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06), width: 8),
+                  border: Border.all(color: t.isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06), width: 8),
                 ),
               ),
               SizedBox(
@@ -101,7 +139,7 @@ class ScoreTrend extends StatelessWidget {
                       Container(
                         width: double.infinity, height: h,
                         margin: const EdgeInsets.symmetric(horizontal: 4),
-                        decoration: BoxDecoration(color: c.withValues(alpha: i == last.length - 1 ? 1.0 : 0.55), borderRadius: BorderRadius.circular(4)),
+                        decoration: BoxDecoration(color: c.withOpacity(i == last.length - 1 ? 1.0 : 0.55), borderRadius: BorderRadius.circular(4)),
                       ),
                       const SizedBox(height: 4),
                       Text(s.score.toString(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w500, color: t.textTertiary)),
@@ -128,7 +166,7 @@ class SessionCard extends StatelessWidget {
     Map<String, Map<String, dynamic>> moduleCfg = {
       "resume": {"label": "Resume", "icon": FeatherIcons.fileText, "color": t.moduleResume},
       "hr": {"label": "HR", "icon": FeatherIcons.users, "color": t.moduleHR},
-      "website": {"label": "Job Post", "icon": FeatherIcons.globe, "color": t.moduleWeb},
+      "website": {"label": "Web", "icon": FeatherIcons.globe, "color": t.moduleWeb},
     };
     var cfg = moduleCfg[s.module] ?? moduleCfg["resume"]!;
     IconData cfgIcon = cfg["icon"] as IconData;
@@ -136,7 +174,7 @@ class SessionCard extends StatelessWidget {
     
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => SessionFeedbackScreen(session: s)));
+        Navigator.push(context, MaterialPageRoute(builder: (_) => FeedbackReportScreen(session: s)));
       },
       behavior: HitTestBehavior.opaque,
       child: GlassCard(
@@ -179,26 +217,9 @@ class SessionsScreen extends StatefulWidget {
 
 class _SessionsScreenState extends State<SessionsScreen> {
   List<Session> sessions = List.from(mockSessions);
+  String _selectedRadar = "overall";
 
-  void _clearSessions() {
-    final t = AppThemeColors.of(context);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: t.card,
-        title: Text("Clear History", style: TextStyle(color: t.text)),
-        content: Text("Remove all session records? This cannot be undone.", style: TextStyle(color: t.textSecondary)),
-        actions: [
-          TextButton(child: Text("Cancel", style: TextStyle(color: t.textSecondary)), onPressed: () => Navigator.of(ctx).pop()),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: t.error),
-            child: const Text("Clear All"),
-            onPressed: () { setState(() => sessions.clear()); Navigator.of(ctx).pop(); },
-          ),
-        ],
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +232,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final best = total > 0 ? sessions.map((s) => s.score).reduce(math.max) : 0;
     final totalMin = sessions.fold(0, (sum, s) => sum + (s.duration ~/ 60));
 
-    Map<String, int> byModule = {"resume": 0, "hr": 0, "website": 0};
+    Map<String, int> byModule = {"resume": 0, "hr": 0, "website": 0, "intro": 0};
     for (var s in sessions) { if (byModule.containsKey(s.module)) byModule[s.module] = byModule[s.module]! + 1; }
 
     if (total == 0) {
@@ -220,19 +241,22 @@ class _SessionsScreenState extends State<SessionsScreen> {
         body: Column(children: [
           StaggeredFadeIn(
             delay: const Duration(milliseconds: 100),
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.only(top: topPadding + 20, bottom: 20, left: 16, right: 16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: t.isDark ? [const Color(0xFF0F1629), const Color(0xFF111827)] : [const Color(0xFFEBF4FF), const Color(0xFFF4F6FB)],
-                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+            child: GlassHeaderPane(
+              padding: EdgeInsets.only(top: topPadding + 20, bottom: 20, left: 24, right: 24),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text("Dashboard", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: -0.6, color: t.text)),
+                  const SizedBox(height: 3),
+                  Text("Track your interview performance", style: TextStyle(fontSize: 13, color: t.textSecondary)),
+                ]),
+                GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ResumeUploadScreen())),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(color: t.primaryMuted, border: Border.all(color: t.primary.withOpacity(0.25)), borderRadius: BorderRadius.circular(12)),
+                    child: Row(children: [Icon(FeatherIcons.uploadCloud, size: 14, color: t.primary), const SizedBox(width: 5), Text("Upload", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: t.primary))]),
+                  ),
                 ),
-              ),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text("Progress", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: -0.6, color: t.text)),
-                const SizedBox(height: 3),
-                Text("Track your interview performance", style: TextStyle(fontSize: 13, color: t.textSecondary)),
               ]),
             ),
           ),
@@ -291,27 +315,25 @@ class _SessionsScreenState extends State<SessionsScreen> {
           SliverToBoxAdapter(
             child: StaggeredFadeIn(
               delay: const Duration(milliseconds: 100),
-              child: GlassCard(
-              margin: EdgeInsets.only(top: topPadding > 0 ? topPadding : 16, bottom: 20, left: 16, right: 16),
-              padding: const EdgeInsets.all(20),
-              borderRadius: 30,
-              child: Column(children: [
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text("Progress", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: -0.6, color: t.text)),
-                    const SizedBox(height: 3),
-                    Text("$total session${total != 1 ? 's' : ''} completed", style: TextStyle(fontSize: 13, color: t.textSecondary)),
-                  ]),
-                  GestureDetector(
-                    onTap: _clearSessions,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                      decoration: BoxDecoration(color: t.errorMuted, border: Border.all(color: t.error.withValues(alpha: 0.25)), borderRadius: BorderRadius.circular(12)),
-                      child: Row(children: [Icon(FeatherIcons.trash2, size: 14, color: t.error), const SizedBox(width: 5), Text("Clear", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: t.error))]),
+              child: GlassHeaderPane(
+                padding: EdgeInsets.only(top: topPadding > 0 ? topPadding + 16 : 36, bottom: 32, left: 20, right: 20),
+                child: Column(children: [
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text("Dashboard", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: -0.6, color: t.text)),
+                      const SizedBox(height: 3),
+                      Text("$total session${total != 1 ? 's' : ''} completed", style: TextStyle(fontSize: 13, color: t.textSecondary)),
+                    ]),
+                    GestureDetector(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ResumeUploadScreen())),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(color: t.primaryMuted, border: Border.all(color: t.primary.withOpacity(0.25)), borderRadius: BorderRadius.circular(12)),
+                        child: Row(children: [Icon(FeatherIcons.uploadCloud, size: 14, color: t.primary), const SizedBox(width: 5), Text("Upload", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: t.primary))]),
+                      ),
                     ),
-                  ),
-                ]),
-                const SizedBox(height: 16),
+                  ]),
+                  const SizedBox(height: 16),
                 Row(children: [
                   Expanded(
                     child: PremiumFlipCard(
@@ -330,7 +352,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         borderRadius: 20,
                         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                           Container(
-                            width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFF3B82F6).withValues(alpha: 0.1), shape: BoxShape.circle),
+                            width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFF3B82F6).withOpacity(0.1), shape: BoxShape.circle),
                             child: const Center(child: Icon(FeatherIcons.trendingUp, color: Color(0xFF3B82F6), size: 24)),
                           ),
                           const SizedBox(height: 12),
@@ -355,11 +377,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 SizedBox(
                   height: 140,
                   child: Row(
-                    children: ["resume", "hr", "website"].map((m) {
+                    children: ["resume", "hr", "website", "intro"].map((m) {
                       Map<String, Map<String, dynamic>> moduleCfg = {
                         "resume": {"label": "Resume", "icon": FeatherIcons.fileText, "color": t.moduleResume, "desc": "Technical fit"},
                         "hr": {"label": "HR", "icon": FeatherIcons.users, "color": t.moduleHR, "desc": "Culture fit"},
-                        "website": {"label": "Job Post", "icon": FeatherIcons.globe, "color": t.moduleWeb, "desc": "Role alignment"},
+                        "website": {"label": "Web", "icon": FeatherIcons.globe, "color": t.moduleWeb, "desc": "Skills match"},
+                        "intro": {"label": "Intro", "icon": FeatherIcons.mic, "color": t.primary, "desc": "Communication"},
                       };
                       var cfg = moduleCfg[m]!;
                       Color cfgColor = cfg["color"] as Color;
@@ -371,7 +394,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       
                       return Expanded(
                         child: Padding(
-                          padding: EdgeInsets.only(right: m != "website" ? 10.0 : 0),
+                          padding: EdgeInsets.only(right: m != "intro" ? 8.0 : 0),
                           child: PremiumFlipCard(
                             front: GlassCard(
                               tintColor: cfgColor,
@@ -399,10 +422,10 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                 const SizedBox(height: 12),
                                 Container(
                                   height: 6, width: double.infinity,
-                                  decoration: BoxDecoration(color: cfgColor.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3)),
+                                  decoration: BoxDecoration(color: cfgColor.withOpacity(0.2), borderRadius: BorderRadius.circular(3)),
                                   child: FractionallySizedBox(
                                     alignment: Alignment.centerLeft, widthFactor: pct,
-                                    child: Container(decoration: BoxDecoration(color: cfgColor, borderRadius: BorderRadius.circular(3), boxShadow: [BoxShadow(color: cfgColor.withValues(alpha: 0.5), blurRadius: 4)])),
+                                    child: Container(decoration: BoxDecoration(color: cfgColor, borderRadius: BorderRadius.circular(3), boxShadow: [BoxShadow(color: cfgColor.withOpacity(0.5), blurRadius: 4)])),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -436,18 +459,39 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("PERFORMANCE RADAR", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: t.textTertiary)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("PERFORMANCE RADAR", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.8, color: t.textTertiary)),
+                          Container(
+                            height: 24,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(color: t.bgTertiary, borderRadius: BorderRadius.circular(12)),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _selectedRadar,
+                                icon: Icon(FeatherIcons.chevronDown, size: 14, color: t.textSecondary),
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: t.text),
+                                dropdownColor: t.card,
+                                items: const [
+                                  DropdownMenuItem(value: "overall", child: Text("Overall Avg")),
+                                  DropdownMenuItem(value: "resume", child: Text("Resume")),
+                                  DropdownMenuItem(value: "website", child: Text("Website")),
+                                  DropdownMenuItem(value: "hr", child: Text("HR")),
+                                  DropdownMenuItem(value: "intro", child: Text("Self-Intro")),
+                                ],
+                                onChanged: (val) {
+                                  if (val != null) setState(() => _selectedRadar = val);
+                                }
+                              )
+                            )
+                          )
+                        ]
+                      ),
                       const SizedBox(height: 20),
                       Center(
                         child: SpiderChart(
-                          data: const {
-                            "Communication": 0.85,
-                            "Technical": 0.70,
-                            "Problem Solving": 0.90,
-                            "Cultural Fit": 0.80,
-                            "Confidence": 0.75,
-                            "Leadership": 0.60,
-                          },
+                          data: _getRadarData(_selectedRadar),
                           maxValue: 1.0,
                           size: MediaQuery.of(context).size.width * 0.55,
                         ),
@@ -499,7 +543,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
         child: Row(children: [
           Container(
             width: 30, height: 30,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(9)),
+            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(9)),
             child: Center(child: Icon(icon, size: 13, color: color)),
           ),
           const SizedBox(width: 10),
@@ -525,5 +569,13 @@ class _SessionsScreenState extends State<SessionsScreen> {
         ),
       ),
     );
+  }
+
+  Map<String, double> _getRadarData(String module) {
+    if (module == "resume") return {"Communication": 0.70, "Technical": 0.95, "Problem Solving": 0.85, "Cultural Fit": 0.60, "Confidence": 0.80, "Leadership": 0.50};
+    if (module == "website") return {"Communication": 0.80, "Technical": 0.90, "Problem Solving": 0.90, "Cultural Fit": 0.75, "Confidence": 0.70, "Leadership": 0.65};
+    if (module == "hr") return {"Communication": 0.95, "Technical": 0.50, "Problem Solving": 0.80, "Cultural Fit": 0.95, "Confidence": 0.90, "Leadership": 0.85};
+    if (module == "intro") return {"Communication": 1.0, "Technical": 0.40, "Problem Solving": 0.60, "Cultural Fit": 0.90, "Confidence": 0.95, "Leadership": 0.80};
+    return {"Communication": 0.85, "Technical": 0.70, "Problem Solving": 0.90, "Cultural Fit": 0.80, "Confidence": 0.75, "Leadership": 0.60}; // overall
   }
 }

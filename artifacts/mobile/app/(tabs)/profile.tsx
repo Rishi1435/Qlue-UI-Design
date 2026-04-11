@@ -1,11 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
   Alert,
   Platform,
   Pressable,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Switch,
@@ -19,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useInterviews } from "@/context/InterviewContext";
 import { useResumes } from "@/context/ResumeContext";
 import { useTheme } from "@/hooks/useTheme";
+import { GlassCard } from "@/components/GlassCard";
 
 function Avatar({ name, size = 80 }: { name: string; size?: number }) {
   const theme = useTheme();
@@ -30,22 +31,16 @@ function Avatar({ name, size = 80 }: { name: string; size?: number }) {
     .slice(0, 2);
 
   return (
-    <View style={[styles.avatarRing, { width: size + 8, height: size + 8, borderRadius: (size + 8) / 2, borderColor: "rgba(255,255,255,0.35)" }]}>
-      <LinearGradient
-        colors={["#2563EB", "#7C3AED"]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={[styles.avatarGradient, { width: size, height: size, borderRadius: size / 2 }]}
-      >
-        <Text style={[styles.avatarInitials, { fontSize: size * 0.32 }]}>{initials}</Text>
-      </LinearGradient>
+    <View style={[styles.avatarBox, { width: size, height: size, borderRadius: size / 2, backgroundColor: theme.primaryMuted }]}>
+      <Text style={[styles.avatarText, { color: theme.primary, fontSize: size * 0.35 }]}>{initials}</Text>
     </View>
   );
 }
 
 function SettingRow({
-  icon, label, iconColor, iconBg, right, onPress, destructive,
+  icon, label, right, onPress, destructive,
 }: {
-  icon: string; label: string; iconColor: string; iconBg: string;
+  icon: string; label: string;
   right?: React.ReactNode; onPress?: () => void; destructive?: boolean;
 }) {
   const theme = useTheme();
@@ -54,11 +49,10 @@ function SettingRow({
       style={({ pressed }) => [styles.settingRow, { opacity: pressed && !!onPress ? 0.65 : 1 }]}
       onPress={onPress}
     >
-      <View style={[styles.settingIconBox, { backgroundColor: iconBg }]}>
-        <Feather name={icon as any} size={15} color={iconColor} />
+      <View style={styles.settingMain}>
+        <Feather name={icon as any} size={18} color={destructive ? theme.error : theme.textSecondary} />
+        <Text style={[styles.settingLabel, { color: destructive ? theme.error : theme.text }]}>{label}</Text>
       </View>
-      <Text style={[styles.settingLabel, { color: destructive ? theme.error : theme.text }]}>{label}</Text>
-      <View style={{ flex: 1 }} />
       {right ?? (onPress && !destructive && <Feather name="chevron-right" size={16} color={theme.textTertiary} />)}
     </Pressable>
   );
@@ -68,17 +62,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   const theme = useTheme();
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme.textTertiary }]}>{title}</Text>
-      <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        {children}
-      </View>
+      <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
+      <GlassCard borderRadius={30} padding={0}>
+        <View style={styles.sectionContent}>
+          {children}
+        </View>
+      </GlassCard>
     </View>
   );
-}
-
-function Div() {
-  const theme = useTheme();
-  return <View style={[styles.divider, { backgroundColor: theme.borderSubtle }]} />;
 }
 
 export default function ProfileScreen() {
@@ -91,7 +82,6 @@ export default function ProfileScreen() {
   const [editName, setEditName] = useState(user?.name || "");
   const [notifs, setNotifs] = useState(true);
   const [voice, setVoice] = useState(true);
-  const webTop = Platform.OS === "web" ? 67 : 0;
 
   const avgScore = sessions.length > 0
     ? Math.round(sessions.reduce((a, s) => a + s.score, 0) / sessions.length) : 0;
@@ -118,154 +108,109 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}>
-        {/* Hero header */}
-        <LinearGradient
-          colors={theme.dark ? ["#060C1A", "#0D1B38", "#1A2A4A"] : ["#1A3A6E", "#2563EB", "#1D4ED8"]}
-          start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }}
-          style={[styles.heroHeader, { paddingTop: insets.top + webTop + 20 }]}
-        >
-          {/* Edit button */}
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={[styles.header, { paddingTop: 10 }]}>
+          <Text style={[styles.headerTitle, { color: theme.primary }]}>Profile</Text>
           <Pressable
-            style={styles.editBtn}
             onPress={() => {
               if (editing) handleSave();
               else { setEditName(user?.name || ""); setEditing(true); }
             }}
           >
-            <View style={styles.editBtnInner}>
-              <Feather name={editing ? "check" : "edit-2"} size={15} color="rgba(255,255,255,0.9)" />
-            </View>
-          </Pressable>
-
-          {/* Avatar */}
-          <View style={styles.avatarSection}>
-            <Avatar name={user?.name || "U"} size={84} />
-          </View>
-
-          {/* Name & email */}
-          <View style={styles.userInfo}>
-            {editing ? (
-              <TextInput
-                style={styles.nameInput}
-                value={editName}
-                onChangeText={setEditName}
-                autoFocus selectTextOnFocus
-                autoCapitalize="words"
-              />
-            ) : (
-              <Text style={styles.userName}>{user?.name || "User"}</Text>
-            )}
-            <Text style={styles.userEmail}>{user?.email || ""}</Text>
-          </View>
-
-          {/* Stats */}
-          <View style={styles.statsRow}>
-            {stats.map((s, i) => (
-              <React.Fragment key={s.label}>
-                {i > 0 && <View style={styles.statDivider} />}
-                <View style={styles.statItem}>
-                  <Text style={styles.statVal}>{s.val}</Text>
-                  <Text style={styles.statLabel}>{s.label}</Text>
-                </View>
-              </React.Fragment>
-            ))}
-          </View>
-        </LinearGradient>
-
-        {/* Settings */}
-        <View style={styles.sections}>
-          <Section title="ACCOUNT">
-            <SettingRow icon="user" label={user?.name || "Name"} iconColor="#60A5FA" iconBg="rgba(96,165,250,0.15)"
-              right={<Text style={[styles.settingVal, { color: theme.textSecondary }]} numberOfLines={1}>{user?.name}</Text>} />
-            <Div />
-            <SettingRow icon="mail" label="Email" iconColor="#34D399" iconBg="rgba(52,211,153,0.15)"
-              right={<Text style={[styles.settingVal, { color: theme.textSecondary }]} numberOfLines={1}>{user?.email}</Text>} />
-            <Div />
-            <SettingRow icon="lock" label="Change Password" iconColor="#FBBF24" iconBg="rgba(251,191,36,0.15)" onPress={() => {}} />
-          </Section>
-
-          <Section title="PREFERENCES">
-            <SettingRow icon="bell" label="Push Notifications" iconColor="#A78BFA" iconBg="rgba(167,139,250,0.15)"
-              right={<Switch value={notifs} onValueChange={setNotifs} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#fff" />} />
-            <Div />
-            <SettingRow icon="mic" label="Voice Assistance" iconColor={theme.primary} iconBg={theme.primaryMuted}
-              right={<Switch value={voice} onValueChange={setVoice} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#fff" />} />
-          </Section>
-
-          <Section title="SUPPORT">
-            <SettingRow icon="help-circle" label="Help & Support" iconColor="#22D3EE" iconBg="rgba(34,211,238,0.15)" onPress={() => {}} />
-            <Div />
-            <SettingRow icon="star" label="Rate Qlue" iconColor="#FCD34D" iconBg="rgba(252,211,77,0.15)" onPress={() => {}} />
-            <Div />
-            <SettingRow icon="info" label="Version 1.0.0" iconColor={theme.textTertiary} iconBg={theme.bgSecondary}
-              right={<Text style={[styles.settingVal, { color: theme.textTertiary }]}>Latest</Text>} />
-          </Section>
-
-          <Pressable
-            style={({ pressed }) => [styles.logoutBtn, { backgroundColor: theme.errorMuted, borderColor: theme.error + "25", opacity: pressed ? 0.75 : 1 }]}
-            onPress={handleLogout}
-          >
-            <Feather name="log-out" size={17} color={theme.error} />
-            <Text style={[styles.logoutText, { color: theme.error }]}>Sign Out</Text>
+            <Text style={{ color: theme.primary, fontWeight: '700' }}>{editing ? "Save" : "Edit"}</Text>
           </Pressable>
         </View>
-      </ScrollView>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+          {/* User info */}
+          <View style={styles.userSection}>
+            <Avatar name={user?.name || "U"} size={90} />
+            <View style={styles.userDetails}>
+              {editing ? (
+                <TextInput
+                  style={[styles.nameInput, { color: theme.text, borderBottomColor: theme.primary }]}
+                  value={editName}
+                  onChangeText={setEditName}
+                  autoFocus
+                />
+              ) : (
+                <Text style={[styles.userName, { color: theme.text }]}>{user?.name || "User"}</Text>
+              )}
+              <Text style={[styles.userEmail, { color: theme.textSecondary }]}>{user?.email || ""}</Text>
+            </View>
+          </View>
+
+          {/* Stats card */}
+          <GlassCard borderRadius={30} padding={20} margin={{ vertical: 10 }}>
+            <View style={styles.statsRow}>
+              {stats.map((s, i) => (
+                <View key={s.label} style={styles.statItem}>
+                  <Text style={[styles.statVal, { color: theme.text }]}>{s.val}</Text>
+                  <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{s.label}</Text>
+                </View>
+              ))}
+            </View>
+          </GlassCard>
+
+          {/* Sections */}
+          <View style={styles.sections}>
+            <Section title="Account Settings">
+              <SettingRow icon="user" label="Personal Info" onPress={() => {}} />
+              <View style={[styles.divider, { backgroundColor: theme.border }]} />
+              <SettingRow icon="lock" label="Password & Security" onPress={() => {}} />
+              <View style={[styles.divider, { backgroundColor: theme.border }]} />
+              <SettingRow icon="bell" label="Notifications"
+                right={<Switch value={notifs} onValueChange={setNotifs} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#fff" />} />
+            </Section>
+
+            <Section title="Preferences">
+              <SettingRow icon="mic" label="Voice Assistance"
+                right={<Switch value={voice} onValueChange={setVoice} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#fff" />} />
+              <View style={[styles.divider, { backgroundColor: theme.border }]} />
+              <SettingRow icon="globe" label="Language" right={<Text style={{ color: theme.textSecondary }}>English</Text>} onPress={() => {}} />
+            </Section>
+
+            <Section title="Danger Zone">
+              <SettingRow icon="log-out" label="Sign Out" destructive onPress={handleLogout} />
+            </Section>
+
+            <Text style={[styles.version, { color: theme.textTertiary }]}>Version 1.0.0</Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  heroHeader: {
-    alignItems: "center", paddingHorizontal: 20, paddingBottom: 28,
-    borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
-    gap: 12,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
-  editBtn: { alignSelf: "flex-end", marginBottom: 4 },
-  editBtnInner: {
-    width: 36, height: 36, borderRadius: 11,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center", justifyContent: "center",
-  },
-  avatarSection: { marginBottom: 4 },
-  avatarRing: { borderWidth: 2.5, alignItems: "center", justifyContent: "center" },
-  avatarGradient: { alignItems: "center", justifyContent: "center" },
-  avatarInitials: { fontFamily: "Inter_700Bold", color: "#fff" },
-  userInfo: { alignItems: "center", gap: 5 },
-  userName: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: -0.3 },
-  nameInput: {
-    fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff",
-    borderBottomWidth: 1.5, borderBottomColor: "rgba(255,255,255,0.5)",
-    paddingBottom: 3, minWidth: 180, textAlign: "center",
-  },
-  userEmail: { fontSize: 14, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.6)" },
-  statsRow: {
-    flexDirection: "row", width: "100%",
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 18, padding: 16, marginTop: 4,
-  },
-  statItem: { flex: 1, alignItems: "center", gap: 3 },
-  statVal: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#fff" },
-  statLabel: { fontSize: 11, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.6)" },
-  statDivider: { width: 1, backgroundColor: "rgba(255,255,255,0.15)", marginVertical: 4 },
-  sections: { padding: 16, gap: 4 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.8, marginBottom: 8, marginLeft: 4 },
-  sectionCard: {
-    borderRadius: 18, borderWidth: 1, overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 10, elevation: 2,
-  },
-  settingRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, gap: 12 },
-  settingIconBox: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  settingLabel: { fontSize: 15, fontFamily: "Inter_500Medium" },
-  settingVal: { fontSize: 13, fontFamily: "Inter_400Regular", maxWidth: 160 },
-  divider: { height: 1, marginLeft: 62 },
-  logoutBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 10, height: 52, borderRadius: 16, borderWidth: 1, marginTop: 4,
-  },
-  logoutText: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  headerTitle: { fontSize: 26, fontWeight: '700', letterSpacing: -0.5 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 100 },
+  userSection: { flexDirection: 'row', alignItems: 'center', gap: 20, marginBottom: 20 },
+  avatarBox: { alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontWeight: '800' },
+  userDetails: { flex: 1, gap: 4 },
+  userName: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
+  nameInput: { fontSize: 22, fontWeight: '800', borderBottomWidth: 1, paddingBottom: 2 },
+  userEmail: { fontSize: 14, fontWeight: '500' },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  statItem: { alignItems: 'center', gap: 4 },
+  statVal: { fontSize: 20, fontWeight: '800' },
+  statLabel: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase' },
+  sections: { gap: 24, marginTop: 10 },
+  section: { gap: 12 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', marginLeft: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionContent: { paddingVertical: 8 },
+  settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 },
+  settingMain: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  settingLabel: { fontSize: 15, fontWeight: '600' },
+  divider: { height: 1.5, marginLeft: 54, opacity: 0.3 },
+  version: { textAlign: 'center', fontSize: 12, fontWeight: '600', marginTop: 20 },
 });

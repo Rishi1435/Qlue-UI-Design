@@ -29,7 +29,7 @@ class Avatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.35),
+          color: Colors.white.withOpacity(0.35),
           width: 2.5,
         ),
       ),
@@ -476,11 +476,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: EdgeInsets.only(bottom: bottomPadding + 100),
         child: Column(
           children: [
-            // Hero Header
-            GlassCard(
-              margin: EdgeInsets.only(left: 16, right: 16, top: topPadding > 0 ? topPadding : 16, bottom: 20),
-              padding: const EdgeInsets.only(top: 24, bottom: 28, left: 20, right: 20),
-              borderRadius: 32,
+            // Hero Header (Solid Blue Gradient matching Mockup)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: EdgeInsets.only(top: topPadding > 0 ? topPadding + 16 : 36, bottom: 32, left: 20, right: 20),
+              decoration: BoxDecoration(
+                color: t.cardElevated,
+                borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(32), bottomRight: Radius.circular(32)),
+                border: Border(bottom: BorderSide(color: t.border, width: 1)),
+              ),
               child: Column(
                 children: [
                   Align(
@@ -503,14 +508,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
+                            color: t.primaryMuted,
                             borderRadius: BorderRadius.circular(11),
                           ),
                           child: Center(
                             child: Icon(
                               editing ? FeatherIcons.check : FeatherIcons.edit2,
                               size: 15,
-                              color: Colors.white.withValues(alpha: 0.9),
+                              color: t.primary,
                             ),
                           ),
                         ),
@@ -530,29 +535,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 focusNode: _nameFocusNode,
                                 textCapitalization: TextCapitalization.words,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: t.text),
                                 decoration: InputDecoration(
                                   isDense: true,
                                   contentPadding: const EdgeInsets.only(bottom: 3),
-                                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.5), width: 1.5)),
-                                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white, width: 2.0)),
+                                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: t.border, width: 1.5)),
+                                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: t.primary, width: 2.0)),
                                 ),
                               ),
                             )
                           : Text(
                               editName,
-                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -0.3),
+                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: t.text, letterSpacing: -0.3),
                             ),
                       const SizedBox(height: 5),
-                      Text(userEmail, style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.6))),
+                      Text(userEmail, style: TextStyle(fontSize: 14, color: t.textSecondary)),
                     ],
                   ),
                   Container(
-                    margin: const EdgeInsets.only(top: 14),
-                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(top: 24),
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(18),
+                      color: t.bgSecondary,
+                      border: Border.all(color: t.border),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -562,12 +568,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return Row(
                           children: [
                             if (index > 0)
-                              Container(width: 1, height: 30, margin: const EdgeInsets.symmetric(horizontal: 16), color: Colors.white.withValues(alpha: 0.15)),
+                              Container(width: 1, height: 30, margin: const EdgeInsets.symmetric(horizontal: 16), color: t.border),
                             Column(
                               children: [
-                                Text(stat["val"]!, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                                Text(stat["val"]!, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: t.text)),
                                 const SizedBox(height: 3),
-                                Text(stat["label"]!, style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6))),
+                                Text(stat["label"]!, style: TextStyle(fontSize: 11, color: t.textSecondary)),
                               ],
                             ),
                           ],
@@ -592,7 +598,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           icon: FeatherIcons.user,
                           label: editName.isEmpty ? "Name" : editName,
                           iconColor: const Color(0xFF60A5FA),
-                          iconBg: const Color(0xFF60A5FA).withValues(alpha: 0.15),
+                          iconBg: const Color(0xFF60A5FA).withOpacity(0.15),
                           right: Text(editName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: t.textSecondary)),
                         ),
                         const ProfileDiv(),
@@ -600,7 +606,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           icon: FeatherIcons.mail,
                           label: "Email",
                           iconColor: const Color(0xFF34D399),
-                          iconBg: const Color(0xFF34D399).withValues(alpha: 0.15),
+                          iconBg: const Color(0xFF34D399).withOpacity(0.15),
                           right: Text(userEmail, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: t.textSecondary)),
                         ),
                         const ProfileDiv(),
@@ -608,7 +614,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           icon: FeatherIcons.lock,
                           label: "Change Password",
                           iconColor: const Color(0xFFFBBF24),
-                          iconBg: const Color(0xFFFBBF24).withValues(alpha: 0.15),
+                          iconBg: const Color(0xFFFBBF24).withOpacity(0.15),
                           onPress: _showChangePasswordSheet,
                         ),
                       ],
@@ -625,8 +631,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           label: "Dark Mode",
                           iconColor: t.isDark ? const Color(0xFF818CF8) : const Color(0xFFF59E0B),
                           iconBg: t.isDark
-                              ? const Color(0xFF818CF8).withValues(alpha: 0.15)
-                              : const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                              ? const Color(0xFF818CF8).withOpacity(0.15)
+                              : const Color(0xFFF59E0B).withOpacity(0.15),
                           right: Switch(
                             value: themeNotifier.isDark,
                             onChanged: (_) => themeNotifier.toggle(),
@@ -637,31 +643,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const ProfileDiv(),
                         SettingRow(
-                          icon: FeatherIcons.bell,
-                          label: "Push Notifications",
-                          iconColor: const Color(0xFFA78BFA),
-                          iconBg: const Color(0xFFA78BFA).withValues(alpha: 0.15),
-                          right: Switch(
-                            value: notifs,
-                            onChanged: (val) => setState(() => notifs = val),
-                            activeColor: Colors.white,
-                            activeTrackColor: t.primary,
-                            inactiveTrackColor: t.border,
-                          ),
+                          icon: FeatherIcons.globe,
+                          label: "Language",
+                          iconColor: const Color(0xFF10B981),
+                          iconBg: const Color(0xFF10B981).withOpacity(0.15),
+                          right: Text("English (US)", style: TextStyle(fontSize: 13, color: t.textSecondary)),
                         ),
                         const ProfileDiv(),
                         SettingRow(
-                          icon: FeatherIcons.mic,
-                          label: "Voice Assistance",
-                          iconColor: t.primary,
-                          iconBg: t.primaryMuted,
-                          right: Switch(
-                            value: voice,
-                            onChanged: (val) => setState(() => voice = val),
-                            activeColor: Colors.white,
-                            activeTrackColor: t.primary,
-                            inactiveTrackColor: t.border,
-                          ),
+                          icon: FeatherIcons.shield,
+                          label: "Privacy & Security",
+                          iconColor: const Color(0xFF8B5CF6),
+                          iconBg: const Color(0xFF8B5CF6).withOpacity(0.15),
                         ),
                       ],
                     ),
@@ -675,7 +668,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           icon: FeatherIcons.helpCircle,
                           label: "Help & Support",
                           iconColor: const Color(0xFF22D3EE),
-                          iconBg: const Color(0xFF22D3EE).withValues(alpha: 0.15),
+                          iconBg: const Color(0xFF22D3EE).withOpacity(0.15),
                           onPress: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpSupportScreen())),
                         ),
                         const ProfileDiv(),
@@ -683,7 +676,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           icon: FeatherIcons.star,
                           label: "Rate Qlue",
                           iconColor: const Color(0xFFFCD34D),
-                          iconBg: const Color(0xFFFCD34D).withValues(alpha: 0.15),
+                          iconBg: const Color(0xFFFCD34D).withOpacity(0.15),
                           onPress: _showRatingDialog,
                         ),
                         const ProfileDiv(),

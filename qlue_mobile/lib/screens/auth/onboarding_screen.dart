@@ -41,7 +41,7 @@ class _ExactOnboardingScreenState extends State<ExactOnboardingScreen> with Sing
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
                 'Qlue',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.9)),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.9)),
               ),
             ),
             const SizedBox(height: 40),
@@ -58,7 +58,7 @@ class _ExactOnboardingScreenState extends State<ExactOnboardingScreen> with Sing
             // Image Placeholder (to match the vacuum cleaner space in design)
             Expanded(
               child: Center(
-                child: Icon(Icons.blur_on_sharp, size: 120, color: Colors.white.withValues(alpha: 0.05)),
+                child: Icon(Icons.blur_on_sharp, size: 120, color: Colors.white.withOpacity(0.05)),
               ),
             ),
             
