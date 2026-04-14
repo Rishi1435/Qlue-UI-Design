@@ -1,0 +1,13 @@
+run = "flutter run -d web-server --web-port 8080 --web-hostname 0.0.0.0"
+
+[workflows]
+runButton = "Run Flutter App"
+
+[interpreter]
+command = "dart"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["flutter", "run", "-d", "web-server", "--web-port", "8080", "--web-hostname", "0.0.0.0"]
