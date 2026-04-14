@@ -1,31 +1,13 @@
-modules = ["nodejs-24"]
-run = "pnpm run dev"
-entrypoint = "artifacts/mobile/app/_layout.tsx"
-
-[[artifacts]]
-id = "artifacts/api-server"
-
-[[artifacts]]
-id = "artifacts/mobile"
-
-[[artifacts]]
-id = "artifacts/mockup-sandbox"
-
-[deployment]
-router = "application"
-deploymentTarget = "autoscale"
-
-[deployment.postBuild]
-args = ["pnpm", "store", "prune"]
-env = { "CI" = "true" }
+run = "flutter run -d web-server --web-port 8080 --web-hostname 0.0.0.0"
 
 [workflows]
-runButton = "Qlue App"
+runButton = "Run Flutter App"
 
-[agent]
-stack = "PNPM_WORKSPACE"
-expertMode = true
+[interpreter]
+command = "dart"
 
-[postMerge]
-path = "scripts/post-merge.sh"
-timeoutMs = 20000
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["flutter", "run", "-d", "web-server", "--web-port", "8080", "--web-hostname", "0.0.0.0"]
