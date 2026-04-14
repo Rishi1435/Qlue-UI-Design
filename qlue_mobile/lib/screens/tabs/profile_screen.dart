@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../../core/theme.dart';
 import '../../core/mock_data.dart';
 import '../../context/auth_provider.dart';
@@ -140,11 +141,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final String userEmail = "jane.doe@example.com";
   String editName = "Jane Doe";
   String currentRole = "Senior Software Engineer";
-  String age = "28";
+  String voiceModel = "Tiffany";
   List<String> userSkills = ["Flutter", "Dart", "Spring Boot", "AWS"];
   bool editing = false;
   bool notifs = true;
   bool voice = true;
+
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _detailController = TextEditingController();
@@ -182,7 +185,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _nameController.dispose();
     _detailController.dispose();
     _nameFocusNode.dispose();
+    _audioPlayer.dispose();
     super.dispose();
+  }
+
+  Future<void> _playPreview(String modelName) async {
+    try {
+      final fileName = modelName.toLowerCase() == 'tiffany' ? 'tiffany.mp3' : 'matthew.mp3';
+      await _audioPlayer.stop();
+      await _audioPlayer.play(AssetSource('audios/$fileName'));
+    } catch (e) {
+      debugPrint("Error playing preview: $e");
+    }
+  }
+
+  void _showVoiceSelectionSheet() {
+    final t = AppThemeColors.of(context);
+    final voices = [
+      {'name': 'Tiffany', 'desc': 'Warm & Professional'},
+      {'name': 'Matthew', 'desc': 'Clear & Authoritative'},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => GlassCard(
+          borderRadius: 32,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Select Voice Model', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: t.text)),
+              const SizedBox(height: 20),
+              ...voices.map((v) {
+                final isSelected = voiceModel == v['name'];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() => voiceModel = v['name']!);
+                      setModalState(() {});
+                    },
+                    child: GlassCard(
+                      borderRadius: 16,
+                      padding: const EdgeInsets.all(16),
+                      tintColor: isSelected ? t.primary.withOpacity(0.1) : null,
+                      hasMetallicBorder: isSelected,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40, height: 40,
+                            decoration: BoxDecoration(
+                              color: isSelected ? t.primary : t.bgSecondary,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              isSelected ? FeatherIcons.check : FeatherIcons.user,
+                              size: 18,
+                              color: isSelected ? Colors.white : t.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(v['name']!, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: t.text)),
+                                Text(v['desc']!, style: TextStyle(fontSize: 12, color: t.textTertiary)),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => _playPreview(v['name']!),
+                            icon: Icon(FeatherIcons.playCircle, color: t.primary),
+                            tooltip: 'Preview Voice',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _handleLogout() {
@@ -628,26 +719,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         right: Text(currentRole, style: TextStyle(fontSize: 13, color: t.textSecondary)),
                         onPress: () => _showEditDetailSheet("Profession", currentRole, (v) => setState(() => currentRole = v)),
                       ),
-                      const ProfileDiv(),
-                      SettingRow(
-                        icon: FeatherIcons.user,
-                        label: "Age",
-                        iconColor: const Color(0xFF6366F1),
-                        iconBg: const Color(0xFF6366F1).withOpacity(0.1),
-                        right: Text(age, style: TextStyle(fontSize: 13, color: t.textSecondary)),
-                        onPress: () => _showEditDetailSheet("Age", age, (v) => setState(() => age = v)),
-                      ),
-                      const ProfileDiv(),
                       SettingRow(
                         icon: FeatherIcons.code,
                         label: "Skills",
-                        iconColor: const Color(0xFF10B981),
-                        iconBg: const Color(0xFF10B981).withOpacity(0.1),
+                        iconColor: t.accentGreen,
+                        iconBg: t.accentGreen.withOpacity(0.1),
                         right: Text(
                           userSkills.isEmpty ? "None" : userSkills.length > 2 ? "${userSkills.take(2).join(', ')}..." : userSkills.join(', '),
                           style: TextStyle(fontSize: 13, color: t.textSecondary),
                         ),
                         onPress: _showSkillManagementSheet,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // App Preferences Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ProfileSection(
+                  title: "App Preferences",
+                  child: Column(
+                    children: [
+                      SettingRow(
+                        icon: FeatherIcons.mic,
+                        label: "Voice Model",
+                        iconColor: t.primary,
+                        iconBg: t.primary.withOpacity(0.1),
+                        right: Text(voiceModel, style: TextStyle(fontSize: 13, color: t.textSecondary)),
+                        onPress: _showVoiceSelectionSheet,
                       ),
                     ],
                   ),
@@ -664,8 +765,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       SettingRow(
                         icon: FeatherIcons.mail,
                         label: 'Email Address',
-                        iconColor: const Color(0xFF34D399),
-                        iconBg: const Color(0xFF34D399).withOpacity(0.15),
+                        iconColor: t.success,
+                        iconBg: t.success.withOpacity(0.15),
                         right: Text(userEmail, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: t.textSecondary)),
                         onPress: () => Notify.info(context, 'Email cannot be changed directly.'),
                       ),
@@ -673,8 +774,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       SettingRow(
                         icon: FeatherIcons.lock,
                         label: 'Change Password',
-                        iconColor: const Color(0xFFFBBF24),
-                        iconBg: const Color(0xFFFBBF24).withOpacity(0.15),
+                        iconColor: t.warning,
+                        iconBg: t.warning.withOpacity(0.15),
                         onPress: () => Notify.info(context, 'Opening secure password session...'),
                       ),
                     ],
@@ -692,16 +793,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       SettingRow(
                         icon: FeatherIcons.helpCircle,
                         label: "Help & Support",
-                        iconColor: const Color(0xFF22D3EE),
-                        iconBg: const Color(0xFF22D3EE).withOpacity(0.15),
+                        iconColor: t.moduleResume,
+                        iconBg: t.moduleResume.withOpacity(0.15),
                         onPress: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpSupportScreen())),
                       ),
                       const ProfileDiv(),
                       SettingRow(
                         icon: FeatherIcons.star,
                         label: "Rate Qlue",
-                        iconColor: const Color(0xFFFCD34D),
-                        iconBg: const Color(0xFFFCD34D).withOpacity(0.15),
+                        iconColor: t.warning,
+                        iconBg: t.warning.withOpacity(0.15),
                         onPress: _showRatingDialog,
                       ),
                       const ProfileDiv(),
