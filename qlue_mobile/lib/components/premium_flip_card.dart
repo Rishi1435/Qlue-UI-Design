@@ -6,6 +6,7 @@ class PremiumFlipCard extends StatefulWidget {
   final Widget back;
   final Duration duration;
   final bool enableScale;
+  final Function(bool isFront)? onFlip;
 
   const PremiumFlipCard({
     super.key,
@@ -13,6 +14,7 @@ class PremiumFlipCard extends StatefulWidget {
     required this.back,
     this.duration = const Duration(milliseconds: 600),
     this.enableScale = true,
+    this.onFlip,
   });
 
   @override
@@ -58,6 +60,7 @@ class _PremiumFlipCardState extends State<PremiumFlipCard> with TickerProviderSt
       _flipCtrl.reverse();
     }
     _isFront = !_isFront;
+    if (widget.onFlip != null) widget.onFlip!(_isFront);
   }
 
   void _onTapCancel() {

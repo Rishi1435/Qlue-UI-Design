@@ -31,10 +31,10 @@ class MyApp extends StatelessWidget {
               title: 'Qlue',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.lightTheme.copyWith(
-                textTheme: GoogleFonts.interTextTheme(AppTheme.lightTheme.textTheme),
+                textTheme: GoogleFonts.montserratTextTheme(AppTheme.lightTheme.textTheme),
               ),
               darkTheme: AppTheme.darkTheme.copyWith(
-                textTheme: GoogleFonts.interTextTheme(AppTheme.darkTheme.textTheme),
+                textTheme: GoogleFonts.montserratTextTheme(AppTheme.darkTheme.textTheme),
               ),
               themeMode: themeNotifier.themeMode,
               initialRoute: '/login',

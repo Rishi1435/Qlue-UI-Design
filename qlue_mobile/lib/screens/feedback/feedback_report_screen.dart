@@ -5,6 +5,7 @@ import 'package:feather_icons/feather_icons.dart';
 import '../../core/theme.dart';
 import '../../core/mock_data.dart';
 import '../../components/glass_card.dart';
+import '../../components/spectral_background.dart';
 
 class FeedbackReportScreen extends StatefulWidget {
   final Session? session;
@@ -16,7 +17,6 @@ class FeedbackReportScreen extends StatefulWidget {
 
 class _FeedbackReportScreenState extends State<FeedbackReportScreen> {
   int _activeTabIndex = 0;
-  final List<String> _tabs = ["Summary", "Strengths", "Weaknesses"];
 
   @override
   Widget build(BuildContext context) {
@@ -24,85 +24,80 @@ class _FeedbackReportScreenState extends State<FeedbackReportScreen> {
     final t = AppThemeColors.dark;
     final topPadding = MediaQuery.of(context).padding.top;
 
-    return AppThemeColorsProvider(
-      colors: t,
-      child: Scaffold(
-        backgroundColor: t.bg,
-        body: Stack(
-          children: [
-            // Background Glows
-            Positioned(
-              top: -100,
-              right: -100,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: t.primary.withOpacity(0.15),
+    return SpectralBackground(
+      child: AppThemeColorsProvider(
+        colors: t,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Stack(
+            children: [
+              SingleChildScrollView(
+                padding: EdgeInsets.only(top: topPadding + 20, bottom: 60, left: 24, right: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildHeader(context, t),
+                    const SizedBox(height: 24),
+                    _buildScoreCard(t),
+                    const SizedBox(height: 24),
+                    _buildSpiderChartCard(t),
+                    const SizedBox(height: 32),
+                    _buildNavigationTabs(t),
+                    const SizedBox(height: 20),
+                    _buildContentArea(t),
+                    const SizedBox(height: 40),
+                    _buildTranscriptSection(t),
+                  ],
                 ),
-                child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80), child: Container()),
               ),
-            ),
-
-            SingleChildScrollView(
-              padding: EdgeInsets.only(top: topPadding + 20, bottom: 60, left: 24, right: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildHeader(context, t),
-                  const SizedBox(height: 24),
-                  
-                  // TOP SCORE CARD
-                  _buildScoreCard(t),
-                  const SizedBox(height: 24),
-
-                  // SPIDER CHART
-                  _buildSpiderChartCard(t),
-                  const SizedBox(height: 32),
-
-                  // NAVIGATION TABS
-                  _buildNavigationTabs(t),
-                  const SizedBox(height: 20),
-
-                  // CONTENT AREA (Summary, Strengths, Weaknesses)
-                  _buildContentArea(t),
-                  const SizedBox(height: 40),
-
-                  // Q&A TRANSCRIPT (Now as a persistent section)
-                  _buildTranscriptSection(t),
-                ],
-              ),
-            ),
-            
-            // Back Button
-            Positioned(
-              top: topPadding + 10,
-              left: 16,
-              child: IconButton(
-                icon: Icon(FeatherIcons.chevronLeft, color: t.text),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context, AppThemeColors t) {
-    return Column(
+    return Row(
       children: [
-        Text(
-          "Performance Analysis",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: t.textSecondary, letterSpacing: 1.2),
+        GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: GlassCard(
+              borderRadius: 12,
+              padding: EdgeInsets.zero,
+              hasMetallicBorder: true,
+              child: Center(child: Icon(FeatherIcons.chevronLeft, size: 20, color: t.text)),
+            ),
+          ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          widget.session?.topic ?? "Interview Feedback",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: t.text),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Performance Analysis",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: t.textTertiary,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              Text(
+                widget.session?.topic ?? "Interview Feedback",
+                style: TextStyle(
+                  fontSize: 20,
+                  color: t.text,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -117,7 +112,7 @@ class _FeedbackReportScreenState extends State<FeedbackReportScreen> {
       child: Column(
         children: [
           Text(
-            "OVERALL SCORE",
+            "Overall Score",
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: t.textSecondary, letterSpacing: 2),
           ),
           const SizedBox(height: 12),
@@ -203,57 +198,62 @@ class _FeedbackReportScreenState extends State<FeedbackReportScreen> {
   }
 
   Widget _buildNavigationTabs(AppThemeColors t) {
-    return GlassCard(
-      padding: const EdgeInsets.all(6),
-      borderRadius: 30,
-      blurSigma: 10,
-      child: Row(
-        children: List.generate(_tabs.length, (index) {
-          final isActive = _activeTabIndex == index;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _activeTabIndex = index),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: isActive ? t.primary.withOpacity(0.25) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: isActive ? t.primary.withOpacity(0.4) : Colors.transparent,
-                    width: 1,
-                  ),
-                  boxShadow: isActive ? [
-                    BoxShadow(
-                      color: t.primary.withOpacity(0.2),
-                      blurRadius: 15,
-                      spreadRadius: 1,
-                    )
-                  ] : null,
-                  gradient: isActive ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      t.primary.withOpacity(0.3),
-                      t.primary.withOpacity(0.1),
+    return Container(
+      height: 54,
+      child: GlassCard(
+        borderRadius: 30,
+        padding: const EdgeInsets.all(4),
+        hasMetallicBorder: true,
+        child: Stack(
+          children: [
+            // Sliding Indicator
+            AnimatedAlign(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutQuart,
+              alignment: _activeTabIndex == 0 
+                  ? Alignment.centerLeft 
+                  : (_activeTabIndex == 1 ? Alignment.center : Alignment.centerRight),
+              child: FractionallySizedBox(
+                widthFactor: 0.33,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: t.primary,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(color: t.primary.withOpacity(0.4), blurRadius: 12, spreadRadius: 1)
                     ],
-                  ) : null,
-                ),
-                child: Center(
-                  child: Text(
-                    _tabs[index],
-                    style: TextStyle(
-                      fontSize: 13, 
-                      fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
-                      color: isActive ? Colors.white : t.textSecondary,
-                      letterSpacing: 0.4,
-                    ),
                   ),
                 ),
               ),
             ),
-          );
-        }),
+            // Tab Items
+            Row(
+              children: [
+                Expanded(child: _buildCustomTab(0, "Summary", t)),
+                Expanded(child: _buildCustomTab(1, "Strengths", t)),
+                Expanded(child: _buildCustomTab(2, "Weaknesses", t)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomTab(int index, String label, AppThemeColors t) {
+    final isSelected = _activeTabIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _activeTabIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            color: isSelected ? Colors.white : t.textSecondary,
+          ),
+        ),
       ),
     );
   }

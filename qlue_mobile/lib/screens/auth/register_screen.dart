@@ -5,6 +5,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../context/auth_provider.dart';
 import '../../core/theme.dart';
 import '../../components/glass_card.dart';
+import '../../components/spectral_background.dart';
+import '../../components/spectral_input.dart';
 
 class ExactRegisterScreen extends StatefulWidget {
   const ExactRegisterScreen({super.key});
@@ -23,18 +25,27 @@ class _ExactRegisterScreenState extends State<ExactRegisterScreen> {
   String _error = '';
 
   Future<void> _handleRegister() async {
-    if (_name.trim().isEmpty || _email.trim().isEmpty || _password.isEmpty) { 
-      setState(() => _error = "Please fill in all fields"); return; 
+    if (_name.trim().isEmpty || _email.trim().isEmpty || _password.isEmpty) {
+      setState(() => _error = "Please fill in all fields");
+      return;
     }
-    if (_password.length < 8) { 
-      setState(() => _error = "Password must be at least 8 characters"); return; 
+    if (_password.length < 8) {
+      setState(() => _error = "Password must be at least 8 characters");
+      return;
     }
-    if (!_agreed) { 
-      setState(() => _error = "Please agree to Terms"); return; 
+    if (!_agreed) {
+      setState(() => _error = "Please agree to the Terms of Service");
+      return;
     }
-    setState(() { _error = ''; _loading = true; });
+    setState(() {
+      _error = '';
+      _loading = true;
+    });
     try {
-      await Provider.of<AuthProvider>(context, listen: false).register(_name.trim(), _email.trim(), _password);
+      await Provider.of<AuthProvider>(
+        context,
+        listen: false,
+      ).register(_name.trim(), _email.trim(), _password);
       if (mounted) Navigator.of(context).pushReplacementNamed('/tabs');
     } catch (e) {
       if (mounted) setState(() => _error = "Registration failed. Try again.");
@@ -44,14 +55,21 @@ class _ExactRegisterScreenState extends State<ExactRegisterScreen> {
   }
 
   Future<void> _handleGoogleSignIn() async {
-    setState(() { _error = ''; _googleLoading = true; });
+    setState(() {
+      _error = '';
+      _googleLoading = true;
+    });
     try {
-      await Provider.of<AuthProvider>(context, listen: false).signInWithGoogle();
-      if (mounted && Provider.of<AuthProvider>(context, listen: false).isAuthenticated) {
+      await Provider.of<AuthProvider>(
+        context,
+        listen: false,
+      ).signInWithGoogle();
+      if (mounted &&
+          Provider.of<AuthProvider>(context, listen: false).isAuthenticated) {
         Navigator.of(context).pushReplacementNamed('/tabs');
       }
     } catch (e) {
-      if (mounted) setState(() => _error = "Google Sign-Up failed.");
+      if (mounted) setState(() => _error = "Google Sign-In failed.");
     } finally {
       if (mounted) setState(() => _googleLoading = false);
     }
@@ -60,238 +78,366 @@ class _ExactRegisterScreenState extends State<ExactRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final t = AppThemeColors.of(context);
-    
-    final Color bgColor = t.isDark ? t.bgSecondary : const Color(0xFFF4F7FC);
-    final Color primaryBlue = t.isDark ? t.primary : const Color(0xFF3B82F6);
-    final Color textColor = t.text;
-    final Color labelColor = t.isDark ? t.textSecondary : const Color(0xFF374151);
-    final Color placeholderColor = t.placeholder;
-    final Color subtleText = t.textSecondary;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            const SizedBox(height: 10),
-            // Header with Back Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: GlassCard(
+    return SpectralBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                const SizedBox(height: 10),
+                // Header with Back Button
+                Row(
+                  children: [
+                    GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
-                      borderRadius: 20,
-                      padding: EdgeInsets.zero,
-                      child: SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: Icon(FeatherIcons.chevronLeft, size: 20, color: t.isDark ? t.textSecondary : subtleText),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: t.bgSecondary.withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: t.metallicBorder.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(
+                          FeatherIcons.chevronLeft,
+                          size: 20,
+                          color: t.text,
+                        ),
                       ),
                     ),
-                  ),
-                  Text(
-                    'Qlue',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: primaryBlue, letterSpacing: -0.5),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
+                  ],
+                ),
 
-            // The Floating Card
-            Expanded(
-              child: GlassCard(
-                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                borderRadius: 40,
-                padding: EdgeInsets.zero,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(top: 40, left: 24, right: 24, bottom: 40),
+                // const Spacer(flex: 1),
+                // Premium Typography Logo
+                Center(
                   child: Column(
+                    children: [
+                      ShaderMask(
+                        shaderCallback: (bounds) => LinearGradient(
+                          colors: [Colors.white, Colors.white.withOpacity(0.7)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ).createShader(bounds),
+                        child: const Text(
+                          'Qlue',
+                          style: TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1.5,
+                            fontFamily: 'Montserrat',
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        "Join the AI Career Revolution",
+                        style: TextStyle(
+                          color: t.textSecondary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.5,
+                          fontFamily: 'Montserrat',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // const Spacer(flex: 2),
+                const SizedBox(height: 50),
+
+                // Unified Register Card
+                GlassCard(
+                  borderRadius: 32,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  hasMetallicBorder: true,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Create an Account',
+                        "Create Account",
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: textColor, letterSpacing: -0.5),
-                      ),
-                      const SizedBox(height: 36),
-                      
-                      if (_error.isNotEmpty) ...[
-                        Text(_error, style: const TextStyle(color: Colors.red, fontSize: 13), textAlign: TextAlign.center),
-                        const SizedBox(height: 16),
-                      ],
-                      
-                      // Name Field
-                      Text('Name', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: labelColor)),
-                      const SizedBox(height: 8),
-                      GlassCard(
-                        borderRadius: 30,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: SizedBox(
-                          height: 56,
-                          child: TextField(
-                            onChanged: (v) => _name = v,
-                            textCapitalization: TextCapitalization.words,
-                            style: TextStyle(fontSize: 15, color: textColor),
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              hintText: 'Full Name',
-                              hintStyle: TextStyle(fontSize: 15, color: placeholderColor, fontWeight: FontWeight.w400),
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: t.text,
+                          fontFamily: 'Montserrat',
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      
-                      // Email Field
-                      Text('Email', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: labelColor)),
-                      const SizedBox(height: 8),
-                      GlassCard(
-                        borderRadius: 30,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: SizedBox(
-                          height: 56,
-                          child: TextField(
-                            onChanged: (v) => _email = v,
-                            keyboardType: TextInputType.emailAddress,
-                            style: TextStyle(fontSize: 15, color: textColor),
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              hintText: 'joedoe75@gmail.com',
-                              hintStyle: TextStyle(fontSize: 15, color: placeholderColor, fontWeight: FontWeight.w400),
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
+                      const SizedBox(height: 16),
+
+                      if (_error.isNotEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: t.error.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: t.error.withOpacity(0.2)),
+                          ),
+                          child: Text(
+                            _error,
+                            style: TextStyle(
+                              color: t.error,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
+
+                      SpectralInput(
+                        label: "FULL NAME",
+                        hint: "Enter your name",
+                        icon: FeatherIcons.user,
+                        onChanged: (v) => _name = v,
                       ),
-                      const SizedBox(height: 20),
-                      
-                      // Password Field
-                      Text('Password', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: labelColor)),
-                      const SizedBox(height: 8),
-                      GlassCard(
-                        borderRadius: 30,
-                        padding: const EdgeInsets.only(left: 20, right: 10),
-                        child: SizedBox(
-                          height: 56,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  onChanged: (v) => _password = v,
-                                  obscureText: !_showPw,
-                                  style: TextStyle(fontSize: 15, color: textColor),
-                                  decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    hintText: '••••••••',
-                                    hintStyle: TextStyle(fontSize: 15, color: placeholderColor, fontWeight: FontWeight.w400),
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
+                      const SizedBox(height: 12),
+                      SpectralInput(
+                        label: "EMAIL ADDRESS",
+                        hint: "name@example.com",
+                        icon: FeatherIcons.mail,
+                        onChanged: (v) => _email = v,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 12),
+                      SpectralInput(
+                        label: "PASSWORD",
+                        hint: "At least 8 characters",
+                        icon: FeatherIcons.lock,
+                        obscureText: !_showPw,
+                        onChanged: (v) => _password = v,
+                        suffix: IconButton(
+                          icon: Icon(
+                            _showPw ? FeatherIcons.eye : FeatherIcons.eyeOff,
+                            size: 18,
+                            color: t.textSecondary,
+                          ),
+                          onPressed: () => setState(() => _showPw = !_showPw),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Terms Toggle
+                      GestureDetector(
+                        onTap: () => setState(() => _agreed = !_agreed),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: _agreed ? t.primary : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: _agreed ? t.primary : t.textTertiary,
+                                  width: 1.5,
                                 ),
                               ),
-                              IconButton(
-                                icon: Icon(_showPw ? FeatherIcons.eye : FeatherIcons.eyeOff, size: 18, color: placeholderColor),
-                                onPressed: () => setState(() => _showPw = !_showPw),
+                              child: _agreed
+                                  ? const Icon(
+                                      Icons.check,
+                                      size: 12,
+                                      color: Colors.white,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                "I agree to the Terms of Service and Privacy Policy",
+                                style: TextStyle(
+                                  color: t.textSecondary,
+                                  fontSize: 10,
+                                  fontFamily: 'Montserrat',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Metallic Create Button
+                      GestureDetector(
+                        onTap: _loading ? null : _handleRegister,
+                        child: Container(
+                          height: 52,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: _loading
+                                  ? [
+                                      t.primary.withOpacity(0.5),
+                                      t.primary.withOpacity(0.3),
+                                    ]
+                                  : t.primaryGradient,
+                            ),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.4),
+                              width: 0.8,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: t.primary.withOpacity(0.3),
+                                blurRadius: 15,
+                                spreadRadius: 1,
                               ),
                             ],
                           ),
+                          child: Center(
+                            child: _loading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    "Create Account",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                      fontFamily: 'Montserrat',
+                                    ),
+                                  ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 30),
 
-                      // Terms Agreement
+                      const SizedBox(height: 16),
+
+                      // Divider
                       Row(
                         children: [
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: Checkbox(
-                              value: _agreed,
-                              onChanged: (v) => setState(() => _agreed = v ?? false),
-                              activeColor: primaryBlue,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          Expanded(
+                            child: Divider(
+                              color: t.textTertiary.withOpacity(0.1),
+                              thickness: 1,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
-                              'I agree to the Terms of Service and Privacy Policy',
-                              style: TextStyle(fontSize: 13, color: labelColor),
+                              "OR",
+                              style: TextStyle(
+                                color: t.textTertiary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1,
+                                fontFamily: 'Montserrat',
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(
+                              color: t.textTertiary.withOpacity(0.1),
+                              thickness: 1,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 30),
 
-                      // Create Account Button
-                      GlassCard(
-                        onTap: _loading ? null : _handleRegister,
-                        tintColor: primaryBlue,
-                        fillAlpha: t.isDark ? 0.4 : 0.8,
-                        borderRadius: 30,
-                        padding: EdgeInsets.zero,
-                        child: SizedBox(
-                          height: 56,
-                          child: Center(
-                            child: _loading 
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text('Create account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      
-                      // Or Sign up with
-                      Center(child: Text('Or Sign up with', style: TextStyle(fontSize: 13, color: placeholderColor, fontWeight: FontWeight.w500))),
-                      const SizedBox(height: 20),
-                      
-                      // Continue with Google Button
+                      const SizedBox(height: 12),
+
+                      // Google Button
                       GlassCard(
                         onTap: _googleLoading ? null : _handleGoogleSignIn,
-                        borderRadius: 30,
+                        borderRadius: 18,
                         padding: EdgeInsets.zero,
                         child: SizedBox(
-                          height: 54,
+                          height: 52,
                           child: Center(
                             child: _googleLoading
-                                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: primaryBlue))
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
                                 : Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       SvgPicture.string(
-                                        '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-                                          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                                          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                                          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                                          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                                          <path fill="none" d="M0 0h48v48H0z"/>
-                                        </svg>''',
-                                        width: 22,
-                                        height: 22,
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>',
+                                        width: 18,
+                                        height: 18,
                                       ),
                                       const SizedBox(width: 10),
-                                      Text('Sign up with Google', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: textColor)),
+                                      Text(
+                                        "Continue with Google",
+                                        style: TextStyle(
+                                          color: t.textSecondary,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          fontFamily: 'Montserrat',
+                                        ),
+                                      ),
                                     ],
                                   ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
-              ),
+
+                const SizedBox(height: 20),
+
+                // Back to Login
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Already have an account? ",
+                      style: TextStyle(
+                        color: t.textSecondary,
+                        fontSize: 13,
+                        fontFamily: 'Montserrat',
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Text(
+                        "Sign In",
+                        style: TextStyle(
+                          color: t.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Montserrat',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../core/notifications.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:ui';
 import '../../core/theme.dart';
 import '../../core/mock_data.dart';
 import '../../components/glass_card.dart';
+import '../../components/spectral_background.dart';
 
 class ResumeUploadScreen extends StatefulWidget {
   const ResumeUploadScreen({super.key});
@@ -18,26 +20,21 @@ class _ResumeUploadScreenState extends State<ResumeUploadScreen> {
 
   void _handleUpload() async {
     if (mockResumes.length >= 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(backgroundColor: Colors.redAccent, content: Text("Maximum of 5 resumes allowed.", style: TextStyle(color: Colors.white)))
-      );
+      Notify.error(context, "Maximum of 5 resumes allowed.");
       return;
     }
 
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'doc', 'docx'],
+      allowedExtensions: ['pdf'], // PDf only as requested
     );
 
     if (result != null && result.files.single.name.isNotEmpty) {
       final file = result.files.single;
       final fileName = file.name;
-      final String fileExtension = file.extension?.toLowerCase() ?? 'pdf';
       final String fileSizeMB = file.size > 0 ? "${(file.size / (1024 * 1024)).toStringAsFixed(1)} MB" : "1.2 MB";
 
       setState(() => _isUploading = true);
-      
-      // Simulate mapping extraction from file contents
       await Future.delayed(const Duration(seconds: 2));
       
       if (!mounted) return;
@@ -48,18 +45,19 @@ class _ResumeUploadScreenState extends State<ResumeUploadScreen> {
           filename: fileName,
           uploadDate: "Just now",
           status: "parsed",
-          skills: ["Flutter", "Dart", "Firebase", "UI/UX", "REST API", "SQL"],
-          format: (fileExtension == 'pdf') ? 'pdf' : 'docx',
+          skills: ["Flutter", "Dart", "Firebase", "Clean Architecture", "UI/UX"],
+          format: 'pdf',
           fileSize: fileSizeMB,
-          summary: "Parsed file successfully. Extracted key metrics from document mapping directly to the UI.",
+          summary: "Professional profile parsed. System mapping active for $fileName.",
           experience: [
-            Experience(role: "Uploaded Candidate", company: "Local File", years: "2024", description: "This data was dynamically rendered matching the specific $fileName upload event."),
+            Experience(role: "Candidate", company: "Portfolio", years: "2024", description: "Parsed from local drive."),
           ],
           education: [
-            Education(degree: "Real Device File", institution: fileSizeMB, year: ""),
+            Education(degree: "Software Engineering", institution: "Tech Univ", year: "2023"),
           ]
         ));
       });
+      Notify.success(context, "Resume uploaded and indexed.");
     }
   }
 
@@ -76,151 +74,74 @@ class _ResumeUploadScreenState extends State<ResumeUploadScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         final t = AppThemeColors.of(ctx);
-        return Container(
-          height: MediaQuery.of(ctx).size.height * 0.85,
-          decoration: BoxDecoration(
-            color: t.cardElevated,
-            border: Border.all(color: t.border),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-          ),
-          child: Stack(
+        return GlassCard(
+          margin: const EdgeInsets.only(top: 80),
+          padding: const EdgeInsets.all(24),
+          borderRadius: 32,
+          hasMetallicBorder: true,
+          child: Column(
             children: [
-              // ambient blue glow smoothly themed
-              Positioned(
-                top: 100, left: -50, right: -50,
-                child: Container(
-                  height: 300,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: t.primaryMuted,
-                        blurRadius: 100,
-                        spreadRadius: 50,
-                      )
-                    ]
-                  ),
-                ),
-              ),
-              Column(
-                children: [
-                   const SizedBox(height: 12),
-                   Container(width: 40, height: 4, decoration: BoxDecoration(color: t.border, borderRadius: BorderRadius.circular(2))),
-                   const SizedBox(height: 24),
-                   
-                   Padding(
-                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                     child: Row(
+               Container(width: 40, height: 4, decoration: BoxDecoration(color: t.border.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
+               const SizedBox(height: 24),
+               Row(
+                 children: [
+                   Container(
+                     padding: const EdgeInsets.all(12),
+                     decoration: BoxDecoration(color: t.primary.withOpacity(0.1), shape: BoxShape.circle),
+                     child: Icon(FeatherIcons.fileText, color: t.primary, size: 24),
+                   ),
+                   const SizedBox(width: 16),
+                   Expanded(
+                     child: Column(
                        crossAxisAlignment: CrossAxisAlignment.start,
                        children: [
-                         Container(
-                           padding: const EdgeInsets.all(12),
-                           decoration: BoxDecoration(color: t.primaryMuted, shape: BoxShape.circle),
-                           child: Icon(FeatherIcons.fileText, color: t.primary, size: 24),
-                         ),
-                         const SizedBox(width: 16),
-                         Expanded(
-                           child: Column(
-                             crossAxisAlignment: CrossAxisAlignment.start,
-                             children: [
-                               Text("Parsed Data", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: t.text)),
-                               const SizedBox(height: 4),
-                               Text(r.filename, style: TextStyle(fontSize: 14, color: t.textSecondary)),
-                             ],
-                           )
-                         ),
-                         IconButton(
-                           icon: Icon(FeatherIcons.x, color: t.textTertiary),
-                           onPressed: () => Navigator.pop(ctx),
-                         )
+                         Text("Resume Profile", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: t.text)),
+                         Text(r.filename, style: TextStyle(fontSize: 14, color: t.textSecondary)),
                        ],
-                     ),
+                     )
                    ),
-                   const SizedBox(height: 16),
-                   Expanded(
-                     child: ListView(
-                       padding: const EdgeInsets.all(24),
-                       children: [
-                         if (r.summary != null) ...[
-                           _buildSectionHeader("SUMMARY", t),
-                           const SizedBox(height: 12),
-                           Text(r.summary!, style: TextStyle(fontSize: 15, color: t.textSecondary, height: 1.6)),
-                           const SizedBox(height: 32),
-                         ],
-                         if (r.skills.isNotEmpty) ...[
-                           _buildSectionHeader("SKILLS", t),
-                           const SizedBox(height: 16),
-                           Wrap(
-                             spacing: 12, runSpacing: 12,
-                             children: r.skills.map((s) => _buildSkillPill(s, t)).toList()
-                           ),
-                           const SizedBox(height: 32),
-                         ],
-                         if (r.experience != null && r.experience!.isNotEmpty) ...[
-                           _buildSectionHeader("INTERNSHIPS & EXPERIENCE", t),
-                           const SizedBox(height: 16),
-                           ...r.experience!.map((e) => Padding(
-                             padding: const EdgeInsets.only(bottom: 24.0),
-                             child: Column(
-                               crossAxisAlignment: CrossAxisAlignment.start,
-                               children: [
-                                 Text(e.role, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: t.text)),
-                                 const SizedBox(height: 4),
-                                 Text("${e.company} • ${e.years}", style: TextStyle(fontSize: 14, color: t.primary)),
-                                 if (e.description != null) ...[
-                                   const SizedBox(height: 8),
-                                   Text(e.description!, style: TextStyle(fontSize: 14, color: t.textSecondary, height: 1.5)),
-                                 ]
-                               ],
-                             ),
-                           )).toList(),
-                         ],
-                         if (r.education != null && r.education!.isNotEmpty) ...[
-                           _buildSectionHeader("EDUCATION", t),
-                           const SizedBox(height: 16),
-                           ...r.education!.map((e) => Padding(
-                             padding: const EdgeInsets.only(bottom: 24.0),
-                             child: Column(
-                               crossAxisAlignment: CrossAxisAlignment.start,
-                               children: [
-                                 Text(e.degree, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: t.text)),
-                                 const SizedBox(height: 4),
-                                 Text("${e.institution} • ${e.year}", style: TextStyle(fontSize: 14, color: t.textSecondary)),
-                               ],
-                             ),
-                           )).toList(),
-                         ]
-                       ],
+                   IconButton(icon: Icon(FeatherIcons.x, color: t.textTertiary), onPressed: () => Navigator.pop(ctx))
+                 ],
+               ),
+               const SizedBox(height: 24),
+               Expanded(
+                 child: ListView(
+                   children: [
+                     _buildDetailSection("Summary", r.summary ?? "No summary available.", t),
+                     const SizedBox(height: 24),
+                     _buildDetailSection("Core Skills", "", t, 
+                       content: Wrap(
+                         spacing: 8, runSpacing: 8,
+                         children: r.skills.map((s) => _buildPill(s, t)).toList()
+                       )
                      ),
-                   )
-                ],
-              )
+                   ],
+                 ),
+               )
             ],
-          )
+          ),
         );
       }
     );
   }
 
-  Widget _buildSectionHeader(String title, AppThemeColors t) {
-    return Row(
+  Widget _buildDetailSection(String title, String body, AppThemeColors t, {Widget? content}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: t.textTertiary)),
-        const SizedBox(width: 16),
-        Expanded(child: Container(height: 1, color: t.border)),
+        Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: t.primary, letterSpacing: 1)),
+        const SizedBox(height: 12),
+        if (content != null) content
+        else Text(body, style: TextStyle(fontSize: 15, color: t.textSecondary, height: 1.6)),
       ],
     );
   }
 
-  Widget _buildSkillPill(String skill, AppThemeColors t) {
+  Widget _buildPill(String text, AppThemeColors t) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: t.bgSecondary,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: t.border),
-      ),
-      child: Text(skill, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: t.text)),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(color: t.bgSecondary, borderRadius: BorderRadius.circular(12), border: Border.all(color: t.border.withOpacity(0.5))),
+      child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: t.textSecondary)),
     );
   }
 
@@ -229,172 +150,126 @@ class _ResumeUploadScreenState extends State<ResumeUploadScreen> {
     final t = AppThemeColors.of(context);
     final topPadding = MediaQuery.of(context).padding.top;
 
-    return Scaffold(
-      backgroundColor: t.bg,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(topPadding + 60),
-        child: Container(
-          padding: EdgeInsets.only(top: topPadding, left: 24, right: 24, bottom: 16),
-          color: t.bg,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+    return SpectralBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        floatingActionButton: GestureDetector(
+          onTap: _isUploading ? null : _handleUpload,
+          child: GlassCard(
+            borderRadius: 30,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            hasMetallicBorder: true,
+            hasGlow: true,
+            tintColor: t.primary,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_isUploading) const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                else const Icon(FeatherIcons.plus, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Text(_isUploading ? "Analysing..." : "Upload New", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              ],
+            ),
+          ),
+        ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // HEADER
+            Padding(
+              padding: EdgeInsets.only(top: topPadding + 16, left: 24, right: 24, bottom: 24),
+              child: Row(
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 6.0, right: 12.0),
-                      child: Icon(FeatherIcons.arrowLeft, color: t.textSecondary, size: 22),
+                    child: SizedBox(
+                      width: 44, height: 44,
+                      child: GlassCard(
+                        borderRadius: 12,
+                        padding: EdgeInsets.zero,
+                        hasMetallicBorder: true,
+                        child: Center(child: Icon(FeatherIcons.chevronLeft, color: t.text, size: 20)),
+                      ),
                     ),
                   ),
-                  Text("Resumes", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: t.text)),
-                ],
-              ),
-              GestureDetector(
-                onTap: _isUploading ? null : _handleUpload,
-                child: Row(
-                  children: [
-                    if (_isUploading) SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: t.primary))
-                    else Icon(FeatherIcons.uploadCloud, size: 16, color: t.primary),
-                    const SizedBox(width: 6),
-                    Text(_isUploading ? "Uploading" : "Upload", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: t.primary))
-                  ],
-                ),
-              )
-            ]
-          ),
-        ),
-      ),
-      body: mockResumes.isEmpty 
-        ? Center(child: Text("No resumes uploaded.\nTap Upload to add one.", textAlign: TextAlign.center, style: TextStyle(color: t.textSecondary, fontSize: 16)))
-        : ListView.builder(
-        padding: const EdgeInsets.only(top: 10, bottom: 40, left: 16, right: 16),
-        itemCount: mockResumes.length,
-        itemBuilder: (context, index) {
-          final resume = mockResumes[index];
-          final isPDF = resume.format.toLowerCase() == "pdf";
-          final headerColor = isPDF ? t.moduleHR : t.moduleResume;
-          
-          return GestureDetector(
-            onTap: () => _showParsedPreview(resume),
-            child: GlassCard(
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.all(0),
-              borderRadius: 24,
-              tintColor: headerColor,
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: headerColor.withOpacity(0.15),
-                      border: Border(bottom: BorderSide(color: headerColor.withOpacity(0.2)))
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(FeatherIcons.fileText, color: headerColor, size: 20),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(resume.format.toUpperCase(), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: t.text)),
-                                Text(resume.fileSize, style: TextStyle(fontSize: 12, color: t.textSecondary)),
-                              ]
-                            )
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(color: headerColor.withOpacity(0.15), borderRadius: BorderRadius.circular(20), border: Border.all(color: headerColor.withOpacity(0.3))),
-                          child: Row(
-                            children: [
-                              Icon(FeatherIcons.checkCircle, color: headerColor, size: 14),
-                              const SizedBox(width: 6),
-                              Text("Ready", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: headerColor)),
-                            ],
-                          )
-                        )
-                      ],
-                    ),
-                  ),
-                  
-                  Padding(
-                    padding: const EdgeInsets.all(20),
+                  const SizedBox(width: 16),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(resume.filename, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: t.text)),
-                        const SizedBox(height: 6),
-                        Text("Uploaded ${resume.uploadDate}", style: TextStyle(fontSize: 13, color: t.textSecondary)),
-                        const SizedBox(height: 16),
-                        
-                        if (resume.skills.isNotEmpty)
-                          Row(
-                            children: [
-                              ...resume.skills.take(3).map((s) => Padding(
-                                padding: const EdgeInsets.only(right: 8.0),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(color: t.primaryMuted, borderRadius: BorderRadius.circular(16)),
-                                  child: Text(s, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: t.primary)),
-                                ),
-                              )),
-                              if (resume.skills.length > 3)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                  decoration: BoxDecoration(color: t.bgSecondary, borderRadius: BorderRadius.circular(16), border: Border.all(color: t.border)),
-                                  child: Text("+${resume.skills.length - 3}", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: t.textSecondary)),
-                                ),
-                            ],
+                        Text(
+                          "Management Console",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: t.textTertiary,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
                           ),
-                          
-                        const SizedBox(height: 24),
-                        
-                        Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () => Navigator.pop(context),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  decoration: BoxDecoration(color: t.primary, borderRadius: BorderRadius.circular(16)),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: const [
-                                      Icon(FeatherIcons.mic, color: Colors.white, size: 18),
-                                      SizedBox(width: 8),
-                                      Text("Start Interview", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                                    ]
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            GestureDetector(
-                              onTap: () => _handleDelete(index),
-                              child: Container(
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(color: t.errorMuted, borderRadius: BorderRadius.circular(16), border: Border.all(color: t.errorMuted)),
-                                child: Icon(FeatherIcons.trash2, color: t.error, size: 18),
-                              ),
-                            )
-                          ],
-                        )
+                        ),
+                        Text(
+                          "Resumes",
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: t.text,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
                       ],
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
-          );
-        },
-      )
+            
+            // LIST CONTENT
+            Expanded(
+              child: mockResumes.isEmpty 
+                ? Center(child: Text("No resumes uploaded.\nUse the action button to add one.", textAlign: TextAlign.center, style: TextStyle(color: t.textTertiary, fontSize: 16)))
+                : ListView.builder(
+                    padding: const EdgeInsets.only(top: 0, bottom: 100, left: 24, right: 24),
+                    itemCount: mockResumes.length,
+                    itemBuilder: (context, index) {
+                      final resume = mockResumes[index];
+                      return GestureDetector(
+                        onTap: () => _showParsedPreview(resume),
+                        child: GlassCard(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(20),
+                          hasMetallicBorder: true,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 50, height: 50,
+                                decoration: BoxDecoration(color: t.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+                                child: Icon(FeatherIcons.fileText, color: t.primary, size: 20),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(resume.filename, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: t.text)),
+                                    const SizedBox(height: 4),
+                                    Text("${resume.fileSize} • Professional PDF", style: TextStyle(fontSize: 12, color: t.textSecondary)),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(FeatherIcons.trash2, color: t.error.withOpacity(0.6), size: 18),
+                                onPressed: () => _handleDelete(index),
+                              )
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
