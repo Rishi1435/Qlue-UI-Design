@@ -4,16 +4,16 @@ import 'package:flutter/widgets.dart';
 
 /// Static color palette – these never change regardless of theme.
 class AppColors {
-  static const Color primary50 = Color(0xFFF0F7FF);
-  static const Color primary100 = Color(0xFFE0EFFF);
-  static const Color primary200 = Color(0xFFB8D9F7);
-  static const Color primary300 = Color(0xFF7CB8E8);
-  static const Color primary400 = Color(0xFF3D94D4);
-  static const Color primary500 = Color(0xFF1A73C7);
-  static const Color primary600 = Color(0xFF0D5AA8);
-  static const Color primary700 = Color(0xFF094485);
-  static const Color primary800 = Color(0xFF063266);
-  static const Color primary900 = Color(0xFF031E47);
+  static const Color primary50 = Color(0xFFF1F5F3);
+  static const Color primary100 = Color(0xFFE2EBE7);
+  static const Color primary200 = Color(0xFFBDD0C9);
+  static const Color primary300 = Color(0xFF8BA99E);
+  static const Color primary400 = Color(0xFF5D7F72);
+  static const Color primary500 = Color(0xFF305148);
+  static const Color primary600 = Color(0xFF294A41);
+  static const Color primary700 = Color(0xFF233E37);
+  static const Color primary800 = Color(0xFF1E342F);
+  static const Color primary900 = Color(0xFF192A26);
 
   static const Color secondary400 = Color(0xFF35BC82);
   static const Color secondary500 = Color(0xFF1A9D66);
@@ -85,6 +85,9 @@ class AppThemeColors {
   final Color inputFocusBg;
   final Color placeholder;
   final Color iconDefault;
+  final Color shadow;
+  final Color metallicBorder;
+  final Color accentGreen;
 
   const AppThemeColors({
     required this.isDark,
@@ -123,7 +126,30 @@ class AppThemeColors {
     required this.inputFocusBg,
     required this.placeholder,
     required this.iconDefault,
+    required this.shadow,
+    required this.metallicBorder,
+    required this.accentGreen,
   });
+
+  List<Color> get primaryGradient => isDark
+      ? const [Color(0xFF294A41), Color(0xFF305148)]
+      : const [Color(0xFF305148), Color(0xFF39534D)];
+
+  List<Color> get metallicGradient => const [
+    Color(0xFFFFFFFF),
+    Color(0xFFA3A3A3),
+    Color(0xFFE5E5E5),
+    Color(0xFF737373),
+    Color(0xFFFFFFFF),
+  ];
+
+  List<Color> get chromeGradient => const [
+    Color(0xFFFFFFFF),
+    Color(0xFFD1D1D1),
+    Color(0xFFFFFFFF),
+    Color(0xFF8E8E8E),
+    Color(0xFFFFFFFF),
+  ];
 
   static const AppThemeColors light = AppThemeColors(
     isDark: false,
@@ -138,10 +164,10 @@ class AppThemeColors {
     textSecondary: Color(0xFF525252),
     textTertiary: Color(0xFFA1A1AA),
     textInverse: Color(0xFFFFFFFF),
-    primary: Color(0xFF007AFF), // Standard pure iOS blue
-    primaryLight: Color(0xFFE5F0FF),
-    primaryMuted: Color(0x19007AFF),
-    primaryDark: Color(0xFF0056B3),
+    primary: Color(0xFF305148),
+    primaryLight: Color(0x1F305148),
+    primaryMuted: Color(0x19305148),
+    primaryDark: Color(0xFF294A41),
     secondary: Color(0xFF34C759),
     secondaryMuted: Color(0x1934C759),
     success: Color(0xFF34C759),
@@ -154,14 +180,17 @@ class AppThemeColors {
     moduleResumeLight: Color(0x1A007AFF),
     moduleHR: Color(0xFFFF2D55),
     moduleHRLight: Color(0x1AFF2D55),
-    moduleWeb: Color(0xFF5856D6),
-    moduleWebLight: Color(0x1A5856D6),
+    moduleWeb: Color.fromARGB(255, 44, 40, 247),
+    moduleWebLight: Color.fromARGB(255, 8, 4, 251),
     tabBar: Color(0xFFFFFFFF),
     tabBarBorder: Color(0xFFE5E5E5),
     inputBg: Color(0xFFFAFAFA),
     inputFocusBg: Color(0xFFF4F4F5),
     placeholder: Color(0xFFA1A1AA),
-    iconDefault: Color(0xFF000000), // Sharp black icons
+    iconDefault: Color(0xFF000000),
+    shadow: Color(0x1A000000),
+    metallicBorder: Color(0xFFD1D5DB),
+    accentGreen: Color(0xFF10B981),
   );
 
   static const AppThemeColors dark = AppThemeColors(
@@ -177,10 +206,10 @@ class AppThemeColors {
     textSecondary: Color(0xFFA3A3A3),
     textTertiary: Color(0xFF525252),
     textInverse: Color(0xFF000000),
-    primary: Color(0xFF0A84FF), // Vivid blue for dark
-    primaryLight: Color(0x1F0A84FF),
-    primaryMuted: Color(0x260A84FF),
-    primaryDark: Color(0xFF0066CC),
+    primary: Color(0xFF2F4C44),
+    primaryLight: Color(0x1F2F4C44),
+    primaryMuted: Color(0x262F4C44),
+    primaryDark: Color(0xFF294A41),
     secondary: Color(0xFF30D158),
     secondaryMuted: Color(0x1F30D158),
     success: Color(0xFF30D158),
@@ -200,7 +229,10 @@ class AppThemeColors {
     inputBg: Color(0xFF121212),
     inputFocusBg: Color(0x1A0A84FF),
     placeholder: Color(0xFF525252),
-    iconDefault: Color(0xFFFFFFFF), // Sharp white icons
+    iconDefault: Color(0xFFFFFFFF),
+    shadow: Color(0x66000000),
+    metallicBorder: Color(0xFF4B5563),
+    accentGreen: Color(0xFF10B981),
   );
 
   /// Get theme colors from the nearest ancestor context.
@@ -272,7 +304,7 @@ class AppTheme {
         onSurface: Color(0xFF000000),
         onError: Color(0xFFFFFFFF),
       ),
-      textTheme: GoogleFonts.interTextTheme(),
+      textTheme: GoogleFonts.montserratTextTheme(),
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFFFFFFFF),
         foregroundColor: Color(0xFF000000),
@@ -287,7 +319,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          textStyle: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -308,7 +340,7 @@ class AppTheme {
         onSurface: Colors.white,
         onError: Colors.white,
       ),
-      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+      textTheme: GoogleFonts.montserratTextTheme(ThemeData.dark().textTheme),
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFF000000), // Pure Black
         foregroundColor: Colors.white,
@@ -323,7 +355,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          textStyle: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
         ),
       ),
     );

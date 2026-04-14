@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 import '../../core/theme.dart';
 import '../../core/mock_data.dart';
+import '../../components/spectral_background.dart';
+import '../../components/glass_card.dart';
 import '../interview/interview_session_screen.dart';
 
 class SkillTag extends StatelessWidget {
@@ -110,8 +112,9 @@ class ResumeDetailScreen extends StatelessWidget {
     final status = statusMap[resume.status]!;
 
     final t = AppThemeColors.of(context);
-    return Scaffold(
-      backgroundColor: t.bg,
+    return SpectralBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           Column(
@@ -134,26 +137,28 @@ class ResumeDetailScreen extends StatelessWidget {
                       children: [
                         GestureDetector(
                           onTap: () => Navigator.of(context).pop(),
-                          child: Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(12),
+                          child: SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: GlassCard(
+                              borderRadius: 12,
+                              padding: EdgeInsets.zero,
+                              hasMetallicBorder: true,
+                              child: Center(child: Icon(FeatherIcons.chevronLeft, size: 20, color: Colors.white)),
                             ),
-                            child: Center(child: Icon(FeatherIcons.arrowLeft, size: 18, color: Colors.white.withOpacity(0.9))),
                           ),
                         ),
                         GestureDetector(
                           onTap: () => _handleDelete(context),
-                          child: Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(12),
+                          child: SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: GlassCard(
+                              borderRadius: 12,
+                              padding: EdgeInsets.zero,
+                              hasMetallicBorder: true,
+                              child: const Center(child: Icon(FeatherIcons.trash2, size: 18, color: Colors.white)),
                             ),
-                            child: const Center(child: Icon(FeatherIcons.trash2, size: 16, color: Colors.white)),
                           ),
                         ),
                       ],
@@ -190,7 +195,7 @@ class ResumeDetailScreen extends StatelessWidget {
                                 spacing: 6,
                                 runSpacing: 6,
                                 children: [
-                                  _heroPill(FeatherIcons.layers, resume.format.toUpperCase()),
+                                  _heroPill(FeatherIcons.layers, resume.format),
                                   _heroPill(FeatherIcons.hardDrive, resume.fileSize),
                                   _heroPill(FeatherIcons.calendar, resume.uploadDate),
                                 ],
@@ -480,7 +485,8 @@ class ResumeDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }

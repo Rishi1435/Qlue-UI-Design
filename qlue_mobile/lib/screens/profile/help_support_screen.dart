@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../core/notifications.dart';
 import 'package:feather_icons/feather_icons.dart';
 import '../../core/theme.dart';
+import '../../components/glass_card.dart';
+import '../../components/spectral_background.dart';
 
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
@@ -43,12 +46,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         _subject = '';
         _message = '';
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Message sent successfully. Support will contact you soon.'),
-          backgroundColor: AppThemeColors.of(context).success,
-        ),
-      );
+      Notify.success(context, 'Message sent successfully. Support will contact you soon.');
       FocusScope.of(context).unfocus();
     }
   }
@@ -59,135 +57,130 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     final topPadding = MediaQuery.of(context).padding.top;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return Scaffold(
-      backgroundColor: t.bg,
-      body: Column(
-        children: [
-          // Header
-          Container(
-            padding: EdgeInsets.only(top: topPadding + 16, bottom: 20, left: 20, right: 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: t.isDark ? [const Color(0xFF0F1629), const Color(0xFF111827)] : [const Color(0xFFEBF4FF), const Color(0xFFF4F6FB)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: t.card,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: t.border),
-                    ),
-                    child: Center(child: Icon(FeatherIcons.arrowLeft, size: 18, color: t.text)),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Text("Help & Support", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5, color: t.text)),
-              ],
-            ),
-          ),
-          
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: bottomPadding + 40),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return SpectralBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Column(
+          children: [
+            // Header
+            Container(
+              padding: EdgeInsets.only(top: topPadding + 16, bottom: 20, left: 20, right: 20),
+              child: Row(
                 children: [
-                  Text("Frequently Asked Questions", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: t.text)),
-                  const SizedBox(height: 12),
-                  ...faqs.map((faq) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: t.card,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: t.border),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.03), offset: const Offset(0, 2), blurRadius: 8),
-                        ],
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: GlassCard(
+                        borderRadius: 12,
+                        padding: EdgeInsets.zero,
+                        hasMetallicBorder: true,
+                        child: Center(child: Icon(FeatherIcons.chevronLeft, size: 20, color: t.text)),
                       ),
-                      child: ExpansionTile(
-                        title: Text(faq["q"]!, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: t.text)),
-                        iconColor: t.primary,
-                        collapsedIconColor: t.iconDefault,
-                        childrenPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                        children: [
-                          Text(faq["a"]!, style: TextStyle(fontSize: 14, color: t.textSecondary, height: 1.5)),
-                        ],
-                      ),
-                    );
-                  }),
-                  
-                  const SizedBox(height: 24),
-                  Text("Contact Us", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: t.text)),
-                  const SizedBox(height: 4),
-                  Text("Can't find what you're looking for? Send us a message.", style: TextStyle(fontSize: 14, color: t.textSecondary)),
-                  const SizedBox(height: 16),
-                  
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: t.card,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: t.border),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextField(
-                          onChanged: (v) => _subject = v,
-                          style: TextStyle(fontSize: 14, color: t.text),
-                          decoration: InputDecoration(
-                            labelText: "Subject",
-                            labelStyle: TextStyle(color: t.textTertiary),
-                            filled: true,
-                            fillColor: t.bgSecondary,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          onChanged: (v) => _message = v,
-                          maxLines: 5,
-                          style: TextStyle(fontSize: 14, color: t.text),
-                          decoration: InputDecoration(
-                            labelText: "How can we help you?",
-                            labelStyle: TextStyle(color: t.textTertiary),
-                            filled: true,
-                            fillColor: t.bgSecondary,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _sending ? null : _sendMessage,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            elevation: 0,
-                          ),
-                          child: _sending
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text('Send Message', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
                     ),
                   ),
+                  const SizedBox(width: 16),
+                  Text("Help & Support", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5, color: t.text)),
                 ],
               ),
             ),
-          ),
-        ],
+            
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: bottomPadding + 40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Frequently Asked Questions", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: t.text)),
+                    const SizedBox(height: 12),
+                    ...faqs.map((faq) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: t.card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: t.border),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.03), offset: const Offset(0, 2), blurRadius: 8),
+                          ],
+                        ),
+                        child: ExpansionTile(
+                          title: Text(faq["q"]!, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: t.text)),
+                          iconColor: t.primary,
+                          collapsedIconColor: t.iconDefault,
+                          childrenPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                          children: [
+                            Text(faq["a"]!, style: TextStyle(fontSize: 14, color: t.textSecondary, height: 1.5)),
+                          ],
+                        ),
+                      );
+                    }),
+                    
+                    const SizedBox(height: 24),
+                    Text("Contact Us", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: t.text)),
+                    const SizedBox(height: 4),
+                    Text("Can't find what you're looking for? Send us a message.", style: TextStyle(fontSize: 14, color: t.textSecondary)),
+                    const SizedBox(height: 16),
+                    
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: t.card,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: t.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            onChanged: (v) => _subject = v,
+                            style: TextStyle(fontSize: 14, color: t.text),
+                            decoration: InputDecoration(
+                              labelText: "Subject",
+                              labelStyle: TextStyle(color: t.textTertiary),
+                              filled: true,
+                              fillColor: t.bgSecondary,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            onChanged: (v) => _message = v,
+                            maxLines: 5,
+                            style: TextStyle(fontSize: 14, color: t.text),
+                            decoration: InputDecoration(
+                              labelText: "How can we help you?",
+                              labelStyle: TextStyle(color: t.textTertiary),
+                              filled: true,
+                              fillColor: t.bgSecondary,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _sending ? null : _sendMessage,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 0,
+                            ),
+                            child: _sending
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Text('Send Message', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

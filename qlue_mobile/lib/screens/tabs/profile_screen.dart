@@ -1,65 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../core/theme.dart';
 import '../../core/mock_data.dart';
 import '../../context/auth_provider.dart';
 import '../../components/input_field.dart';
+import '../../core/notifications.dart';
 import '../profile/help_support_screen.dart';
 import '../../components/glass_card.dart';
+import '../../components/avatar.dart';
+import '../../components/spectral_background.dart';
 
-class Avatar extends StatelessWidget {
-  final String name;
-  final double size;
-
-  const Avatar({super.key, required this.name, this.size = 80});
-
-  @override
-  Widget build(BuildContext context) {
-    String initials = name.trim().split(' ').map((n) {
-      if (n.isNotEmpty) return n[0].toUpperCase();
-      return '';
-    }).join('');
-    if (initials.length > 2) initials = initials.substring(0, 2);
-    if (initials.isEmpty) initials = 'U';
-
-    return Container(
-      width: size + 8,
-      height: size + 8,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white.withOpacity(0.35),
-          width: 2.5,
-        ),
-      ),
-      child: Center(
-        child: Container(
-          width: size,
-          height: size,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              initials,
-              style: TextStyle(
-                fontSize: size * 0.32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class SettingRow extends StatelessWidget {
   final IconData icon;
@@ -154,6 +106,7 @@ class ProfileSection extends StatelessWidget {
           GlassCard(
             borderRadius: 18,
             padding: EdgeInsets.zero,
+            hasMetallicBorder: true,
             child: child,
           ),
         ],
@@ -186,32 +139,50 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final String userEmail = "jane.doe@example.com";
   String editName = "Jane Doe";
+  String currentRole = "Senior Software Engineer";
+  String age = "28";
+  List<String> userSkills = ["Flutter", "Dart", "Spring Boot", "AWS"];
   bool editing = false;
   bool notifs = true;
   bool voice = true;
 
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _detailController = TextEditingController();
   final FocusNode _nameFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    editName = auth.displayName;
     _nameController.text = editName;
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty && result.files.single.path != null) {
+        auth.updateUserProfile(
+          imageUrl: result.files.single.path,
+        );
+      }
+    } catch (e) {
+      debugPrint("Image selection error: $e");
+    }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _detailController.dispose();
     _nameFocusNode.dispose();
     super.dispose();
-  }
-
-  void _handleSave() {
-    if (_nameController.text.trim().isEmpty) return;
-    setState(() {
-      editName = _nameController.text.trim();
-      editing = false;
-    });
   }
 
   void _handleLogout() {
@@ -258,103 +229,150 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
-  void _showChangePasswordSheet() {
+  void _showSkillManagementSheet() {
     final t = AppThemeColors.of(context);
-    String oldPw = '';
-    String newPw = '';
-    String confirmPw = '';
-    bool saving = false;
-    bool showOld = false;
-    bool showNew = false;
-    String error = '';
-    
+    String newSkill = "";
+    final TextEditingController _skillInputController = TextEditingController();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
-        builder: (BuildContext context, StateSetter setModalState) {
-          final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: GlassCard(
-              margin: const EdgeInsets.only(bottom: 24),
-              padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: bottomInset > 0 ? bottomInset + 24 : 32),
-              borderRadius: 32,
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: GlassCard(
+            borderRadius: 32,
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: t.border, borderRadius: BorderRadius.circular(2)))),
-                const SizedBox(height: 24),
-                Text('Change Password', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: t.text, letterSpacing: -0.5)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Manage Skills', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: t.text)),
+                    Text('${userSkills.length} Total', style: TextStyle(fontSize: 12, color: t.primary, fontWeight: FontWeight.bold)),
+                  ],
+                ),
                 const SizedBox(height: 20),
-                if (error.isNotEmpty) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: t.errorMuted, borderRadius: BorderRadius.circular(10)),
-                    child: Row(children: [
-                      Icon(FeatherIcons.alertCircle, size: 14, color: t.error),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(error, style: TextStyle(fontSize: 13, color: t.error))),
-                    ]),
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                
+                // Add Skill Input
                 InputField(
-                  icon: FeatherIcons.lock, label: 'Current Password', placeholder: '••••••••', value: oldPw,
-                  onChangeText: (v) => setModalState(() => oldPw = v), secure: !showOld,
-                  right: GestureDetector(
-                    onTap: () => setModalState(() => showOld = !showOld),
-                    behavior: HitTestBehavior.opaque,
-                    child: Padding(padding: const EdgeInsets.all(14.0), child: Icon(showOld ? FeatherIcons.eyeOff : FeatherIcons.eye, size: 17, color: t.iconDefault)),
-                  ),
+                  icon: FeatherIcons.plusCircle,
+                  label: "Add New Skill",
+                  placeholder: "e.g. System Design",
+                  value: newSkill,
+                  onChangeText: (v) => newSkill = v,
                 ),
-                const SizedBox(height: 14),
-                InputField(
-                  icon: FeatherIcons.shield, label: 'New Password', placeholder: 'Min. 8 characters', value: newPw,
-                  onChangeText: (v) => setModalState(() => newPw = v), secure: !showNew,
-                  right: GestureDetector(
-                    onTap: () => setModalState(() => showNew = !showNew),
-                    behavior: HitTestBehavior.opaque,
-                    child: Padding(padding: const EdgeInsets.all(14.0), child: Icon(showNew ? FeatherIcons.eyeOff : FeatherIcons.eye, size: 17, color: t.iconDefault)),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                InputField(
-                  icon: FeatherIcons.checkCircle, label: 'Confirm New Password', placeholder: 'Re-enter new password', value: confirmPw,
-                  onChangeText: (v) => setModalState(() => confirmPw = v), secure: !showNew,
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: saving ? null : () async {
-                    if (oldPw.isEmpty || newPw.isEmpty || confirmPw.isEmpty) { setModalState(() => error = "Please fill in all fields"); return; }
-                    if (newPw != confirmPw) { setModalState(() => error = "New passwords do not match"); return; }
-                    if (newPw.length < 8) { setModalState(() => error = "Password must be at least 8 characters"); return; }
-                    
-                    setModalState(() { error = ''; saving = true; });
-                    await Future.delayed(const Duration(milliseconds: 800)); // Mock network delay
-                    if (ctx.mounted) {
-                      Navigator.of(ctx).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Password updated successfully!'), backgroundColor: t.success));
+                  onPressed: () {
+                    if (newSkill.trim().isNotEmpty) {
+                      setState(() => userSkills.add(newSkill.trim()));
+                      setModalState(() => newSkill = "");
+                      _skillInputController.clear();
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    elevation: 0,
+                    backgroundColor: t.primary, foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: saving
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Save Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: const Text('Add to Profile'),
                 ),
+                
+                const SizedBox(height: 24),
+                Text('CURRENT SKILLS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: t.textTertiary, letterSpacing: 1)),
+                const SizedBox(height: 12),
+                
+                // Skills List
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.3),
+                  child: SingleChildScrollView(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: userSkills.map((s) => Container(
+                        padding: const EdgeInsets.only(left: 12, right: 4, top: 6, bottom: 6),
+                        decoration: BoxDecoration(
+                          color: t.bgSecondary,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: t.metallicBorder.withOpacity(0.1)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(s, style: TextStyle(fontSize: 13, color: t.textSecondary)),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() => userSkills.remove(s));
+                                setModalState(() {});
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: Icon(FeatherIcons.x, size: 14, color: t.error.withOpacity(0.7)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )).toList(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
               ],
             ),
-            ),
-          );
-        },
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  void _showEditDetailSheet(String title, String currentVal, Function(String) onSave) {
+    final t = AppThemeColors.of(context);
+    _detailController.text = currentVal;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: GlassCard(
+          borderRadius: 32,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Edit $title', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: t.text)),
+              const SizedBox(height: 20),
+              InputField(
+                icon: FeatherIcons.edit2,
+                label: title,
+                placeholder: "Enter $title",
+                value: _detailController.text,
+                onChangeText: (v) => _detailController.text = v,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  onSave(_detailController.text.trim());
+                  Navigator.pop(ctx);
+                  Notify.success(context, '$title updated!');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: t.primary, foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -419,9 +437,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: rating > 0 ? () async {
-                      Navigator.of(ctx).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Thank you for your feedback!'), backgroundColor: t.success));
+                    onPressed: rating > 0 ? () {
+                      Navigator.pop(ctx);
+                      Notify.success(context, 'Thank you for your feedback!');
                     } : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white,
@@ -451,10 +469,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildHeaderButton(IconData icon, AppThemeColors t, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: GlassCard(
+          borderRadius: 12,
+          padding: EdgeInsets.zero,
+          hasMetallicBorder: true,
+          child: Center(child: Icon(icon, size: 20, color: t.text)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColumnStat(String val, String label, AppThemeColors t) {
+    return Column(
+      children: [
+        Text(val, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: t.text, letterSpacing: -0.5)),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: t.textSecondary)),
+      ],
+    );
+  }
+
+  Widget _buildDivider(AppThemeColors t) {
+    return Container(
+      height: 24,
+      width: 1,
+      color: t.metallicBorder.withOpacity(0.2),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
     final t = AppThemeColors.of(context);
-    final themeNotifier = Provider.of<ThemeNotifier>(context);
     final topPadding = MediaQuery.of(context).padding.top;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
@@ -464,265 +516,237 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? (mockSessions.fold(0, (sum, s) => sum + s.score) / sessionsCount).round()
         : 0;
 
-    final stats = [
-      {"val": sessionsCount.toString(), "label": "Sessions"},
-      {"val": resumesCount.toString(), "label": "Resumes"},
-      {"val": avgScore > 0 ? "$avgScore%" : "—", "label": "Avg Score"},
-    ];
-
-    return Scaffold(
-      backgroundColor: t.bg,
-      body: SingleChildScrollView(
-        padding: EdgeInsets.only(bottom: bottomPadding + 100),
-        child: Column(
-          children: [
-            // Hero Header (Solid Blue Gradient matching Mockup)
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 24),
-              padding: EdgeInsets.only(top: topPadding > 0 ? topPadding + 16 : 36, bottom: 32, left: 20, right: 20),
-              decoration: BoxDecoration(
-                color: t.cardElevated,
-                borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(32), bottomRight: Radius.circular(32)),
-                border: Border(bottom: BorderSide(color: t.border, width: 1)),
+    return SpectralBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SingleChildScrollView(
+          padding: EdgeInsets.only(bottom: bottomPadding + 100),
+          child: Column(
+            children: [
+              // HEADER ROW (Profile Title + Actions)
+              Padding(
+                padding: EdgeInsets.only(top: topPadding + 10, left: 24, right: 24, bottom: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildHeaderButton(FeatherIcons.chevronLeft, t, () => Navigator.pop(context)),
+                    Text("Profile", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: t.text, letterSpacing: -0.5)),
+                      const SizedBox(width: 44), // Spacer to keep title centered
+                    ],
+                ),
               ),
-              child: Column(
-                children: [
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0),
-                      child: GestureDetector(
-                        onTap: () {
-                          if (editing) {
-                            _handleSave();
-                          } else {
-                            setState(() {
-                              _nameController.text = editName;
-                              editing = true;
-                            });
-                            _nameFocusNode.requestFocus();
-                          }
-                        },
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: t.primaryMuted,
-                            borderRadius: BorderRadius.circular(11),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              editing ? FeatherIcons.check : FeatherIcons.edit2,
-                              size: 15,
-                              color: t.primary,
+
+              // INFO SECTION (Avatar Left, Info Right)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Stack(
+                        children: [
+                          Avatar(imageUrl: auth.profileImageUrl, size: 88, borderRadius: 20),
+                          Positioned(
+                            bottom: 4, right: 4,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(color: t.primary, shape: BoxShape.circle, border: Border.all(color: Colors.black, width: 2)),
+                              child: const Icon(FeatherIcons.camera, size: 12, color: Colors.white),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4.0),
-                    child: Avatar(name: editName, size: 84),
-                  ),
-                  Column(
-                    children: [
-                      editing
-                          ? IntrinsicWidth(
-                              child: TextField(
-                                controller: _nameController,
-                                focusNode: _nameFocusNode,
-                                textCapitalization: TextCapitalization.words,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: t.text),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.only(bottom: 3),
-                                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: t.border, width: 1.5)),
-                                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: t.primary, width: 2.0)),
-                                ),
-                              ),
-                            )
-                          : Text(
-                              editName,
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: t.text, letterSpacing: -0.3),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: () => _showEditDetailSheet("Name", auth.displayName, (v) {
+                              auth.updateUserProfile(name: v);
+                              setState(() => editName = v);
+                            }),
+                            child: Row(
+                              children: [
+                                Text(auth.displayName, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: t.text, letterSpacing: -0.5)),
+                                const SizedBox(width: 8),
+                                Icon(FeatherIcons.edit3, size: 14, color: t.primary.withOpacity(0.5)),
+                              ],
                             ),
-                      const SizedBox(height: 5),
-                      Text(userEmail, style: TextStyle(fontSize: 14, color: t.textSecondary)),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(currentRole, style: TextStyle(fontSize: 14, color: t.primary, fontWeight: FontWeight.w700, letterSpacing: 0.2)),
+                          const SizedBox(height: 4),
+                          Text("Interview Ready", style: TextStyle(fontSize: 13, color: t.textSecondary, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // STATS ROW (Cinematic Glow)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: GlassCard(
+                  borderRadius: 24,
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  hasMetallicBorder: true,
+                  glowColor: t.primary,
+                  glowRadius: 25,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildColumnStat(sessionsCount.toString(), "Sessions", t),
+                      _buildDivider(t),
+                      _buildColumnStat(resumesCount.toString(), "Resumes", t),
+                      _buildDivider(t),
+                      _buildColumnStat(avgScore > 0 ? "$avgScore%" : "—", "Avg Score", t),
                     ],
                   ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 24),
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: t.bgSecondary,
-                      border: Border.all(color: t.border),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: stats.asMap().entries.map((entry) {
-                        int index = entry.key;
-                        var stat = entry.value;
-                        return Row(
-                          children: [
-                            if (index > 0)
-                              Container(width: 1, height: 30, margin: const EdgeInsets.symmetric(horizontal: 16), color: t.border),
-                            Column(
-                              children: [
-                                Text(stat["val"]!, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: t.text)),
-                                const SizedBox(height: 3),
-                                Text(stat["label"]!, style: TextStyle(fontSize: 11, color: t.textSecondary)),
-                              ],
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
 
-            // Settings
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  ProfileSection(
-                    title: "ACCOUNT",
-                    child: Column(
-                      children: [
-                        SettingRow(
-                          icon: FeatherIcons.user,
-                          label: editName.isEmpty ? "Name" : editName,
-                          iconColor: const Color(0xFF60A5FA),
-                          iconBg: const Color(0xFF60A5FA).withOpacity(0.15),
-                          right: Text(editName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: t.textSecondary)),
+              const SizedBox(height: 24),
+
+              // Career Profile Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ProfileSection(
+                  title: "Career Profile",
+                  child: Column(
+                    children: [
+                      SettingRow(
+                        icon: FeatherIcons.briefcase,
+                        label: "Profession",
+                        iconColor: t.primary,
+                        iconBg: t.primary.withOpacity(0.1),
+                        right: Text(currentRole, style: TextStyle(fontSize: 13, color: t.textSecondary)),
+                        onPress: () => _showEditDetailSheet("Profession", currentRole, (v) => setState(() => currentRole = v)),
+                      ),
+                      const ProfileDiv(),
+                      SettingRow(
+                        icon: FeatherIcons.user,
+                        label: "Age",
+                        iconColor: const Color(0xFF6366F1),
+                        iconBg: const Color(0xFF6366F1).withOpacity(0.1),
+                        right: Text(age, style: TextStyle(fontSize: 13, color: t.textSecondary)),
+                        onPress: () => _showEditDetailSheet("Age", age, (v) => setState(() => age = v)),
+                      ),
+                      const ProfileDiv(),
+                      SettingRow(
+                        icon: FeatherIcons.code,
+                        label: "Skills",
+                        iconColor: const Color(0xFF10B981),
+                        iconBg: const Color(0xFF10B981).withOpacity(0.1),
+                        right: Text(
+                          userSkills.isEmpty ? "None" : userSkills.length > 2 ? "${userSkills.take(2).join(', ')}..." : userSkills.join(', '),
+                          style: TextStyle(fontSize: 13, color: t.textSecondary),
                         ),
-                        const ProfileDiv(),
-                        SettingRow(
-                          icon: FeatherIcons.mail,
-                          label: "Email",
-                          iconColor: const Color(0xFF34D399),
-                          iconBg: const Color(0xFF34D399).withOpacity(0.15),
-                          right: Text(userEmail, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: t.textSecondary)),
-                        ),
-                        const ProfileDiv(),
-                        SettingRow(
-                          icon: FeatherIcons.lock,
-                          label: "Change Password",
-                          iconColor: const Color(0xFFFBBF24),
-                          iconBg: const Color(0xFFFBBF24).withOpacity(0.15),
-                          onPress: _showChangePasswordSheet,
-                        ),
-                      ],
-                    ),
+                        onPress: _showSkillManagementSheet,
+                      ),
+                    ],
                   ),
+                ),
+              ),
 
-                  // ──── PREFERENCES (with dark mode toggle) ────
-                  ProfileSection(
-                    title: "PREFERENCES",
-                    child: Column(
-                      children: [
-                        SettingRow(
-                          icon: t.isDark ? FeatherIcons.moon : FeatherIcons.sun,
-                          label: "Dark Mode",
-                          iconColor: t.isDark ? const Color(0xFF818CF8) : const Color(0xFFF59E0B),
-                          iconBg: t.isDark
-                              ? const Color(0xFF818CF8).withOpacity(0.15)
-                              : const Color(0xFFF59E0B).withOpacity(0.15),
-                          right: Switch(
-                            value: themeNotifier.isDark,
-                            onChanged: (_) => themeNotifier.toggle(),
-                            activeColor: Colors.white,
-                            activeTrackColor: t.primary,
-                            inactiveTrackColor: t.border,
-                          ),
-                        ),
-                        const ProfileDiv(),
-                        SettingRow(
-                          icon: FeatherIcons.globe,
-                          label: "Language",
-                          iconColor: const Color(0xFF10B981),
-                          iconBg: const Color(0xFF10B981).withOpacity(0.15),
-                          right: Text("English (US)", style: TextStyle(fontSize: 13, color: t.textSecondary)),
-                        ),
-                        const ProfileDiv(),
-                        SettingRow(
-                          icon: FeatherIcons.shield,
-                          label: "Privacy & Security",
-                          iconColor: const Color(0xFF8B5CF6),
-                          iconBg: const Color(0xFF8B5CF6).withOpacity(0.15),
-                        ),
-                      ],
-                    ),
+              // ACCOUNT Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ProfileSection(
+                  title: "Account",
+                  child: Column(
+                    children: [
+                      SettingRow(
+                        icon: FeatherIcons.mail,
+                        label: 'Email Address',
+                        iconColor: const Color(0xFF34D399),
+                        iconBg: const Color(0xFF34D399).withOpacity(0.15),
+                        right: Text(userEmail, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: t.textSecondary)),
+                        onPress: () => Notify.info(context, 'Email cannot be changed directly.'),
+                      ),
+                      const ProfileDiv(),
+                      SettingRow(
+                        icon: FeatherIcons.lock,
+                        label: 'Change Password',
+                        iconColor: const Color(0xFFFBBF24),
+                        iconBg: const Color(0xFFFBBF24).withOpacity(0.15),
+                        onPress: () => Notify.info(context, 'Opening secure password session...'),
+                      ),
+                    ],
                   ),
+                ),
+              ),
 
-                  ProfileSection(
-                    title: "SUPPORT",
-                    child: Column(
-                      children: [
-                        SettingRow(
-                          icon: FeatherIcons.helpCircle,
-                          label: "Help & Support",
-                          iconColor: const Color(0xFF22D3EE),
-                          iconBg: const Color(0xFF22D3EE).withOpacity(0.15),
-                          onPress: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpSupportScreen())),
-                        ),
-                        const ProfileDiv(),
-                        SettingRow(
-                          icon: FeatherIcons.star,
-                          label: "Rate Qlue",
-                          iconColor: const Color(0xFFFCD34D),
-                          iconBg: const Color(0xFFFCD34D).withOpacity(0.15),
-                          onPress: _showRatingDialog,
-                        ),
-                        const ProfileDiv(),
-                        SettingRow(
-                          icon: FeatherIcons.info,
-                          label: "Version 1.0.0",
-                          iconColor: t.textTertiary,
-                          iconBg: t.bgSecondary,
-                          right: Text("Latest", style: TextStyle(fontSize: 13, color: t.textTertiary)),
-                        ),
-                      ],
-                    ),
+              // SUPPORT Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ProfileSection(
+                  title: "Support",
+                  child: Column(
+                    children: [
+                      SettingRow(
+                        icon: FeatherIcons.helpCircle,
+                        label: "Help & Support",
+                        iconColor: const Color(0xFF22D3EE),
+                        iconBg: const Color(0xFF22D3EE).withOpacity(0.15),
+                        onPress: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpSupportScreen())),
+                      ),
+                      const ProfileDiv(),
+                      SettingRow(
+                        icon: FeatherIcons.star,
+                        label: "Rate Qlue",
+                        iconColor: const Color(0xFFFCD34D),
+                        iconBg: const Color(0xFFFCD34D).withOpacity(0.15),
+                        onPress: _showRatingDialog,
+                      ),
+                      const ProfileDiv(),
+                      SettingRow(
+                        icon: FeatherIcons.info,
+                        label: "Version 1.0.0",
+                        iconColor: t.textTertiary,
+                        iconBg: t.bgSecondary.withOpacity(0.1),
+                        right: Text("Latest", style: TextStyle(fontSize: 13, color: t.textTertiary)),
+                      ),
+                    ],
                   ),
+                ),
+              ),
 
-                  // Logout
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: GlassCard(
-                      tintColor: t.error,
-                      padding: EdgeInsets.zero,
-                      borderRadius: 16,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _handleLogout,
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            height: 52,
-                            alignment: Alignment.center,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(FeatherIcons.logOut, size: 17, color: t.error),
-                                const SizedBox(width: 10),
-                                Text("Sign Out", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: t.error)),
-                              ],
-                            ),
-                          ),
+              // Logout
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: GlassCard(
+                  tintColor: t.error,
+                  padding: EdgeInsets.zero,
+                  borderRadius: 20,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _handleLogout,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        height: 56,
+                        alignment: Alignment.center,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(FeatherIcons.logOut, size: 18, color: t.error),
+                            const SizedBox(width: 12),
+                            Text("Sign Out", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: t.error, letterSpacing: 0.5)),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
